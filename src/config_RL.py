@@ -21,8 +21,9 @@ for i in range(len(I)):
 STATE_RANGES.append((0, max(DEMAND_QTY_MAX, INVEN_LEVEL_MAX)))
 '''
 
-
+"""
 def Create_scenario(dist_type):
+    
     if dist_type == "UNIFORM":
         # Uniform distribution
         param_min = random.randint(1, 16)
@@ -32,13 +33,14 @@ def Create_scenario(dist_type):
     elif dist_type == "GAUSSIAN":
         # Gaussian distribution
         pass
+    
     return scenario
-
+"""
 # maximum production
 
 
 # Episode
-N_EPISODES = 1000  # 3000
+N_EPISODES = 2  # 3000
 
 
 def DEFINE_FOLDER(folder_name):
