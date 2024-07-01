@@ -14,32 +14,51 @@ from torch.utils.tensorboard import SummaryWriter
 
 class GymInterface(gym.Env):
     def __init__(self):
-        self.Dist_info=dict()
-        self.shortages = 0
-        os = []
         super(GymInterface, self).__init__()
+        self.scenario = dict()  # Scenario for the simulation environment
+        self.shortages = 0
+        self.total_reward_over_episode = []
+        self.total_reward = 0
+        self.cur_episode = 1  # Current episode
+        self.cur_outer_loop = 1  # Current outer loop
+        self.cur_inner_loop = 1  # Current inner loop
+
+        # For functions that only work when testing the model
+        self.model_test = False
+        # Record the cumulative value of each cost
+        self.cost_ratio = {
+            'Holding cost': 0,
+            'Process cost': 0,
+            'Delivery cost': 0,
+            'Order cost': 0,
+            'Shortage cost': 0
+        }
+        os = []
+
         # Action space, observation space
         if RL_ALGORITHM == "DQN":
-            # Define action space
-            self.action_space = spaces.Discrete(len(ACTION_SPACE))
-            # Define observation space:
-            os = []
-            for _ in range(len(I)):
-                os.append(INVEN_LEVEL_MAX+1)
-                os.append(DEMAND_QTY_MAX+1+PRODUCT_OUTGOING_CORRECTION)
-                os.append(DEMAND_QTY_MAX+1)
-            self.observation_space = spaces.MultiDiscrete(os)
+            # # Define action space
+            # self.action_space = spaces.Discrete(len(ACTION_SPACE))
+            # # Define observation space:
+            # os = []
+            # for _ in range(len(I)):
+            #     os.append(INVEN_LEVEL_MAX+1)
+            #     os.append(DEMAND_QTY_MAX+1+PRODUCT_OUTGOING_CORRECTION)
+            #     os.append(DEMAND_QTY_MAX+1)
+            # self.observation_space = spaces.MultiDiscrete(os)
+            pass
         elif RL_ALGORITHM == "DDPG":
-            # Define action space
-            actionSpace = []
-            for i in range(len(I)):
-                if I[i]["TYPE"] == "Material":
-                    actionSpace.append(len(ACTION_SPACE))
-            self.action_space = spaces.MultiDiscrete(actionSpace)
+            # # Define action space
+            # actionSpace = []
+            # for i in range(len(I)):
+            #     if I[i]["TYPE"] == "Material":
+            #         actionSpace.append(len(ACTION_SPACE))
+            # self.action_space = spaces.MultiDiscrete(actionSpace)
 
-            os = [102 for _ in range(len(I)*2+1)]
-            self.observation_space = spaces.MultiDiscrete(os)
-            print(os)
+            # os = [102 for _ in range(len(I)*2+1)]
+            # self.observation_space = spaces.MultiDiscrete(os)
+            # print(os)
+            pass
 
         elif RL_ALGORITHM == "PPO":
             # Define action space
@@ -52,20 +71,6 @@ class GymInterface(gym.Env):
             os = [102 for _ in range(len(I)*2+1)]
             self.observation_space = spaces.MultiDiscrete(os)
             print(os)
-        self.total_reward_over_episode = []
-        self.total_reward = 0
-        self.num_episode = 1
-
-        # For functions that only work when testing the model
-        self.model_test = False
-        # Record the cumulative value of each cost
-        self.cost_ratio = {
-            'Holding cost': 0,
-            'Process cost': 0,
-            'Delivery cost': 0,
-            'Order cost': 0,
-            'Shortage cost': 0
-        }
 
     def reset(self):
         self.cost_ratio = {
@@ -76,17 +81,15 @@ class GymInterface(gym.Env):
             'Shortage cost': 0
         }
         # Initialize the simulation environment
-        print("\nEpisode: ", self.num_episode)
+        # print("\nOuter Loop: ", self.cur_outer_loop, " / Inner Loop: ",
+        #       self.cur_inner_loop, " / Episode: ", self.cur_episode)
         self.simpy_env, self.inventoryList, self.procurementList, self.productionList, self.sales, self.customer, self.providerList, self.daily_events = env.create_env(
             I, P, DAILY_EVENTS)
-        print(self.Dist_info)
         env.simpy_event_processes(self.simpy_env, self.inventoryList, self.procurementList,
-                                  self.productionList, self.sales, self.customer, self.providerList, self.daily_events, I,self.Dist_info)
+                                  self.productionList, self.sales, self.customer, self.providerList, self.daily_events, I, self.scenario)
         env.update_daily_report(self.inventoryList)
 
         # print("==========Reset==========")
-        print(self.Dist_info)
-        self.shortages = 0
         state_real = self.get_current_state()
         return self.correct_state_for_SB3(state_real)
 
@@ -131,7 +134,7 @@ class GymInterface(gym.Env):
             self.cost_ratio[key] += DAILY_COST_REPORT[key]
 
         env.Cost.clear_cost()
-        
+
         reward = -COST_LOG[-1]
         REWARD_LOG.append(COST_LOG[-1])
         self.total_reward += reward
@@ -163,10 +166,10 @@ class GymInterface(gym.Env):
         # Check if the simulation is done
         done = self.simpy_env.now >= SIM_TIME * 24  # 예: SIM_TIME일 이후에 종료
         if done == True:
-            print("Total reward: ", self.total_reward)
+            # print("Total reward: ", self.total_reward)
             self.total_reward_over_episode.append(self.total_reward)
             self.total_reward = 0
-            self.num_episode += 1
+            self.cur_episode += 1
 
         info = {}  # 추가 정보 (필요에 따라 사용)
 
@@ -190,13 +193,19 @@ class GymInterface(gym.Env):
 
     # Min-Max Normalization
     def correct_state_for_SB3(self, state):
+        # Find minimum Delta
+        product_outgoing_correction = 0
+        for key in P:
+            product_outgoing_correction = max(P[key]["PRODUCTION_RATE"] *
+                                              max(P[key]['QNTY_FOR_INPUT_ITEM']), self.scenario["max"])
+
         # Update STATE_ACTION_REPORT_CORRECTION.append(state_corrected)
         state_corrected = []
         for id in range(len(I)):
             # normalization Onhand inventory
             state_corrected.append(round((state[id*2]/INVEN_LEVEL_MAX)*100))
-            state_corrected.append(round(((state[id*2+1]-(-PRODUCT_OUTGOING_CORRECTION))/(
-                ACTION_SPACE[-1]-(-PRODUCT_OUTGOING_CORRECTION)))*100))  # normalization changes in inventory
+            state_corrected.append(round(((state[id*2+1]-(-product_outgoing_correction))/(
+                ACTION_SPACE[-1]-(-product_outgoing_correction)))*100))  # normalization changes in inventory
         # normalization remaining demand
         state_corrected.append(round(
             ((state[-1]+INVEN_LEVEL_MAX)/(I[0]['DEMAND_QUANTITY']+INVEN_LEVEL_MAX))*100))

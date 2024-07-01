@@ -20,15 +20,25 @@ for i in range(len(I)):
 # Remaining demand: Demand quantity - Current product level
 STATE_RANGES.append((0, max(DEMAND_QTY_MAX, INVEN_LEVEL_MAX)))
 '''
-# Find minimum Delta
-PRODUCT_OUTGOING_CORRECTION = 0
-for key in P:
-    PRODUCT_OUTGOING_CORRECTION = max(P[key]["PRODUCTION_RATE"] *
-                                      max(P[key]['QNTY_FOR_INPUT_ITEM']), DEMAND_QTY_MAX)
+
+
+def Create_scenario(dist_type):
+    if dist_type == "UNIFORM":
+        # Uniform distribution
+        param_min = random.randint(1, 16)
+        param_max = random.randint(param_min, 16)
+        scenario = {"Dist_Type": dist_type,
+                    "min": param_min, "max": param_max}
+    elif dist_type == "GAUSSIAN":
+        # Gaussian distribution
+        pass
+    return scenario
+
 # maximum production
 
+
 # Episode
-N_EPISODES = 5000  # 3000
+N_EPISODES = 1000  # 3000
 
 
 def DEFINE_FOLDER(folder_name):
@@ -53,7 +63,7 @@ OPTIMIZE_HYPERPARAMETERS = False
 N_TRIALS = 15  # 50
 
 # Evaluation
-N_EVAL_EPISODES = 100  # 100
+N_EVAL_EPISODES = 5  # 100
 
 # Export files
 DAILY_REPORT_EXPORT = False
@@ -96,10 +106,10 @@ else:
     os.makedirs(GRAPH_FOLDER)
 '''
 # Visualize_Graph
-VIZ_INVEN_LINE = True
-VIZ_INVEN_PIE = True
-VIZ_COST_PIE = True
-VIZ_COST_BOX = True
+VIZ_INVEN_LINE = False
+VIZ_INVEN_PIE = False
+VIZ_COST_PIE = False
+VIZ_COST_BOX = False
 
 # Saved Model
 SAVED_MODEL_PATH = os.path.join(parent_dir, "Saved_Model")
@@ -107,7 +117,7 @@ SAVE_MODEL = False
 SAVED_MODEL_NAME = "PPO_MODEL_SIM500"
 
 # Load Model
-LOAD_MODEL = True
+LOAD_MODEL = False
 LOAD_MODEL_NAME = "PPO_MODEL_SIM500"
 
 # Non-stationary demand

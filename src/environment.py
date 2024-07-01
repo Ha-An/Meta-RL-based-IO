@@ -3,6 +3,7 @@ import numpy as np
 from config_SimPy import *  # Assuming this imports necessary configurations
 from log_SimPy import *  # Assuming this imports necessary logging functionalities
 
+
 class Inventory:
     def __init__(self, env, item_id, holding_cost):
         # Initialize inventory object
@@ -133,7 +134,7 @@ class Procurement:
                 f"==============={I[self.item_id]['NAME']}\'s Inventory ===============")
 
             # Set the order size based on LOT_SIZE_ORDER and reorder level
-            #I[self.item_id]["LOT_SIZE_ORDER"] = ORDER_QTY
+            # I[self.item_id]["LOT_SIZE_ORDER"] = ORDER_QTY
             order_size = I[self.item_id]["LOT_SIZE_ORDER"]
             # if order_size > 0 and inventory.on_hand_inventory < REORDER_LEVEL:
             if order_size > 0:
@@ -156,8 +157,9 @@ class Procurement:
                     f"{present_daytime(self.env.now)}: {I[self.item_id]['NAME']}\'s Total_Inventory                            : {inventory.in_transition_inventory+inventory.on_hand_inventory} units  ")
             yield self.env.timeout(I[self.item_id]["MANU_ORDER_CYCLE"] *
                                    24)  # Wait for the next order cycle
-            #record order history
-           
+            # record order history
+
+
 class Production:
     def __init__(self, env, name, process_id, production_rate, output, input_inventories, qnty_for_input_item, output_inventory, processing_cost, process_stop_cost):
         # Initialize production process
@@ -297,14 +299,14 @@ class Customer:
         self.name = name
         self.item_id = item_id
 
-    def order_product(self, sales, product_inventory, daily_events,Dist_info):
+    def order_product(self, sales, product_inventory, daily_events, scenario):
         """
         Place orders for products to the sales process.
         """
         yield self.env.timeout(self.env.now)  # Wait for the next order cycle
         while True:
             # Generate a random demand quantity
-            I[0]["DEMAND_QUANTITY"] = DEMAND_QTY_FUNC(Dist_info)
+            I[0]["DEMAND_QUANTITY"] = DEMAND_QTY_FUNC(scenario)
             demand_qty = I[0]["DEMAND_QUANTITY"]
             # Receive demands and initiate delivery process
             sales.receive_demands(demand_qty, product_inventory, daily_events)
@@ -401,7 +403,7 @@ def create_env(I, P, daily_events):
     return simpy_env, inventoryList, procurementList, productionList, sales, customer, supplierList, daily_events
 
 
-def simpy_event_processes(simpy_env, inventoryList, procurementList, productionList, sales, customer, supplierList, daily_events, I,Dist_info):
+def simpy_event_processes(simpy_env, inventoryList, procurementList, productionList, sales, customer, supplierList, daily_events, I, scenario):
     # Event processes for SimPy simulation
     for production in productionList:
         simpy_env.process(production.process_items(daily_events))
@@ -409,7 +411,7 @@ def simpy_event_processes(simpy_env, inventoryList, procurementList, productionL
         simpy_env.process(procurementList[i].order_material(
             supplierList[i], inventoryList[supplierList[i].item_id], daily_events))
     simpy_env.process(customer.order_product(
-        sales, inventoryList[I[0]["ID"]], daily_events,Dist_info))
+        sales, inventoryList[I[0]["ID"]], daily_events, scenario))
 
 
 def update_daily_report(inventoryList):
@@ -417,12 +419,12 @@ def update_daily_report(inventoryList):
     day_list = []
     for inven in inventoryList:
         inven.daily_inven_report[-1] = inven.on_hand_inventory
-        day_list=day_list+(inven.daily_inven_report)
+        day_list = day_list+(inven.daily_inven_report)
     DAILY_REPORTS.append(day_list)
-    #Reset report
+    # Reset report
     for inven in inventoryList:
         inven.daily_inven_report = [f"Day {inven.env.now//24+1}", I[inven.item_id]['NAME'], I[inven.item_id]['TYPE'],
-                                        inven.on_hand_inventory, 0, 0, 0]  # inventory report
+                                    inven.on_hand_inventory, 0, 0, 0]  # inventory report
 
 
 '''
@@ -442,6 +444,8 @@ def update_daily_report(inventoryList):
             inven.daily_inven_report = [f"Day {inven.env.now//24}", I[inven.item_id]['NAME'], I[inven.item_id]['TYPE'],
                                         inven.on_hand_inventory, 0, 0, 0]  # inventory report
 '''
+
+
 def present_daytime(env_now):
     fill_length = len(str(SIM_TIME * 24))
     return str(int(env_now)).zfill(fill_length)

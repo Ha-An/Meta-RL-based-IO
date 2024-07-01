@@ -85,46 +85,28 @@ GRAPH_FOLDER = save_path(result_Graph_folder)
 # if this is not 0, the length of state space of demand quantity is not identical to INVEN_LEVEL_MAX
 INVEN_LEVEL_MIN = 0
 INVEN_LEVEL_MAX = 50  # Capacity limit of the inventory [units]
-DEMAND_QTY_MIN = 10
-DEMAND_QTY_MAX = 16
+# DEMAND_QTY_MIN = 10
+# DEMAND_QTY_MAX = 16
 
 # Simulation
-SIM_TIME = 500  # 200 [days] per episode
+SIM_TIME = 100  # 200 [days] per episode
+
+
+# Distribution types
+DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
 
 # Uncertainty factors
 
-def Make_Task():
-    task=[]
-    for mean in range(7,15):
-        for high in range(0,5):
-            for low in range(0,5):
-               Dist_info={"Dist_Type":0,
-               "Mean":mean,
-               "High":high,
-               'Low':low}
-               task.append(Dist_info)
 
-    for mean in range(7,15):
-        for sigma in range(0,5):
-            Dist_info={"Dist_Type":1,
-             "Mean":mean,
-             "Sigma":sigma
-            }
-            task.append(Dist_info)
-    return task
-DIST_INFO=Make_Task()
+def DEMAND_QTY_FUNC(scenario):
+    # Uniform distribution
+    if scenario["Dist_Type"] == "UNIFORM":
+        return random.randint(scenario['min'], scenario["max"])
+    # Gaussian distribution
+    elif scenario["Dist_Type"] == "GAUSSIAN":
+        # Gaussian distribution
+        pass
 
-def DEMAND_QTY_FUNC(Task_info):
-    #Dist Type is Uniform
-    if Task_info['Dist_Type']==0:
-        return random.randint(Task_info['Mean']-Task_info['Low'], Task_info['Mean']+Task_info["High"])
-    #Dist Type is Normal
-    elif Task_info['Dist_Type']==1:
-      Demand_Qty=np.random.normal(Task_info['Mean'], Task_info['Sigma'], 1)
-      if Demand_Qty[0]>0:
-          return round(Demand_Qty[0])
-      else:
-          return 0   
 
 def SUP_LEAD_TIME_FUNC():
     # SUP_LEAD_TIME must be an integer and less than CUST_ORDER_CYCLE(7)
@@ -134,7 +116,6 @@ def SUP_LEAD_TIME_FUNC():
 # Ordering rules
 ORDER_QTY = 1
 REORDER_LEVEL = 0
-
 
 # Print logs
 PRINT_SIM = False
