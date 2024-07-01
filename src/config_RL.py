@@ -40,7 +40,7 @@ def Create_scenario(dist_type):
 
 
 # Episode
-N_EPISODES = 2  # 3000
+N_EPISODES = 500  # 3000
 
 
 def DEFINE_FOLDER(folder_name):
@@ -112,6 +112,9 @@ VIZ_INVEN_LINE = False
 VIZ_INVEN_PIE = False
 VIZ_COST_PIE = False
 VIZ_COST_BOX = False
+
+#Validation
+VALIDATION=True
 
 # Saved Model
 SAVED_MODEL_PATH = os.path.join(parent_dir, "Saved_Model")

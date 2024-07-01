@@ -125,7 +125,12 @@ for iteration in range(num_outer_updates):
     env.cur_inner_loop = 0
     mean_reward, std_reward = gw.evaluate_model(
         meta_learner.meta_model, meta_learner.env, N_EVAL_EPISODES)
-    
+    if VALIDATION:
+        scenario_num=scenario_distribution.index(scenario)
+        model=PPO.load(os.path.join(SAVED_MODEL_PATH,f"PPO_SCENARIO_{scenario_num}"),meta_learner.env)
+        val_mean_reward, val_std_reward = gw.evaluate_model(
+        meta_learner.meta_model, meta_learner.env, N_EVAL_EPISODES)
+    print("Mean_Error:",abs(val_mean_reward-mean_reward))
     meta_learner.logger.record("iteration", iteration)
     meta_learner.logger.record("mean_reward", mean_reward)
     meta_learner.logger.record("std_reward", std_reward)
