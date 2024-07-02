@@ -38,7 +38,7 @@ def Create_scenario(dist_type):
 
 
 # Episode
-N_EPISODES = 1000  # 3000
+N_EPISODES = 200  # 3000
 
 
 def DEFINE_FOLDER(folder_name):

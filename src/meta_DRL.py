@@ -16,11 +16,11 @@ from torch.utils.tensorboard import SummaryWriter
 
 # Hyperparameters
 alpha = 0.01  # Inner loop step size (사용되지 않는 값) ->  SB3 PPO 기본 값 확인하기
-beta = 0.001  # Outer loop step size
-num_scenarios = 20  # Number of full scenarios for meta-training
-scenario_batch_size = 3  # Batch size for random chosen scenarios
+beta = 0.001  # Outer loop step size ## Default: 0.001
+num_scenarios = 5  # Number of full scenarios for meta-training
+scenario_batch_size = 2  # Batch size for random chosen scenarios
 num_inner_updates = N_EPISODES  # Number of gradient steps for adaptation
-num_outer_updates = 20  # Number of outer loop updates -> meta-training iterations
+num_outer_updates = 100  # Number of outer loop updates -> meta-training iterations
 
 # Meta-learning algorithm
 
@@ -83,8 +83,18 @@ class MetaLearner:
 start_time = time.time()
 
 # Create task distribution
-scenario_distribution = [Create_scenario(
-    DIST_TYPE) for _ in range(num_scenarios)]
+# scenario_distribution = [Create_scenario(
+#     DIST_TYPE) for _ in range(num_scenarios)]
+scenario_distribution = [
+    {"Dist_Type": "UNIFORM", "min": 8, "max": 11},
+    {"Dist_Type": "UNIFORM", "min": 9, "max": 12},
+    {"Dist_Type": "UNIFORM", "min": 10, "max": 13},
+    {"Dist_Type": "UNIFORM", "min": 11, "max": 14},
+    {"Dist_Type": "UNIFORM", "min": 12, "max": 15},
+]
+
+test_scenario = {"Dist_Type": "UNIFORM", "min": 9, "max": 14}
+
 
 # Create environment
 env = GymInterface()
@@ -115,11 +125,13 @@ for iteration in range(num_outer_updates):
     meta_learner.meta_update(scenario_models)
 
     # Print progress and log to TensorBoard
-    eval_scenario = Create_scenario(DIST_TYPE)
-    meta_learner.env.scenario = scenario  # Set the scenario for the environment
+    # eval_scenario = Create_scenario(DIST_TYPE)
+
+    # Set the scenario for the environment
+    meta_learner.env.scenario = test_scenario
     print("\n\nTEST SCENARIO: ", meta_learner.env.scenario)
     env.cur_episode = 1
-    env.cur_inner_loop = 0
+    env.cur_inner_loop = 1
     mean_reward, std_reward = gw.evaluate_model(
         meta_learner.meta_model, meta_learner.env, N_EVAL_EPISODES)
     meta_learner.logger.record("iteration", iteration)
@@ -140,8 +152,9 @@ meta_learner.meta_model.save("maml_ppo_model")
 print("\nMETA TRAINING COMPLETE \n\n\n")
 
 # Evaluate the trained meta-policy
-eval_scenario = Create_scenario(DIST_TYPE)
-meta_learner.env.scenario = scenario  # Set the scenario for the environment
+# eval_scenario = Create_scenario(DIST_TYPE)
+# Set the scenario for the environment
+meta_learner.env.scenario = test_scenario
 mean_reward, std_reward = gw.evaluate_model(
     meta_learner.meta_model, meta_learner.env, N_EVAL_EPISODES)
 print(
