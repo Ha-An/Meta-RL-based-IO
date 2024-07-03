@@ -84,7 +84,7 @@ GRAPH_FOLDER = save_path(result_Graph_folder)
 # State space
 # if this is not 0, the length of state space of demand quantity is not identical to INVEN_LEVEL_MAX
 INVEN_LEVEL_MIN = 0
-INVEN_LEVEL_MAX = 50  # Capacity limit of the inventory [units]
+INVEN_LEVEL_MAX = 20  # Capacity limit of the inventory [units]
 # DEMAND_QTY_MIN = 10
 # DEMAND_QTY_MAX = 16
 

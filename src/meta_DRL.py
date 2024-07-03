@@ -14,13 +14,13 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.logger import configure
 from torch.utils.tensorboard import SummaryWriter
 
-# Hyperparameters
+# Hyperparametersㄴ
 alpha = 0.01  # Inner loop step size (사용되지 않는 값) ->  SB3 PPO 기본 값 확인하기
 beta = 0.001  # Outer loop step size ## Default: 0.001
 num_scenarios = 5  # Number of full scenarios for meta-training
 scenario_batch_size = 2  # Batch size for random chosen scenarios
 num_inner_updates = N_EPISODES  # Number of gradient steps for adaptation
-num_outer_updates = 100  # Number of outer loop updates -> meta-training iterations
+num_outer_updates = 150  # Number of outer loop updates -> meta-training iterations
 
 # Meta-learning algorithm
 
@@ -42,13 +42,14 @@ class MetaLearner:
         """
         Adapts the meta-policy to a specific task using gradient descent.
         """
-        self.env.scenario = scenario  # Set the scenario for the environment
+        self.env.scenario = scenario  # Reset the scenario for the environment
         adapted_model = PPO(self.policy, self.env, verbose=0, n_steps=SIM_TIME)
         adapted_model.policy.load_state_dict(
             self.meta_model.policy.state_dict())
-        for _ in range(num_updates):
-            # Train the policy on the specific scenario
-            adapted_model.learn(total_timesteps=SIM_TIME)
+        # for _ in range(num_updates):
+        #     # Train the policy on the specific scenario
+        #     adapted_model.learn(total_timesteps=SIM_TIME)
+        adapted_model.learn(total_timesteps=SIM_TIME*num_updates)
         return adapted_model
 
     def meta_update(self, scenario_models):
@@ -60,7 +61,10 @@ class MetaLearner:
             # Retrieve gradients from the adapted policy
             grads = []
             for param in scenario_model.policy.parameters():
-                grads.append(param.grad.clone())
+                if param.grad is not None:
+                    grads.append(param.grad.clone())
+                else:
+                    grads.append(torch.zeros_like(param.data))
             meta_grads.append(grads)
 
         # Average gradients across tasks
@@ -70,6 +74,34 @@ class MetaLearner:
         # Update meta-policy parameters using the outer loop learning rate
         for param, meta_grad in zip(self.meta_model.policy.parameters(), mean_meta_grads):
             param.data -= self.beta * meta_grad
+
+        # Zero out the gradients for the next iteration
+        # self.meta_model.policy.zero_grad()
+
+    def meta_test(self, env):
+        """
+        Performs the meta-test step by averaging gradients across scenarios.
+        """
+        # Print progress and log to TensorBoard
+        # eval_scenario = Create_scenario(DIST_TYPE)
+
+        # Set the scenario for the environment
+        self.env.scenario = test_scenario
+        print("\n\nTEST SCENARIO: ", self.env.scenario)
+        env.cur_episode = 1
+        env.cur_inner_loop = 1
+        mean_reward, std_reward = gw.evaluate_model(
+            self.meta_model, self.env, N_EVAL_EPISODES)
+        self.logger.record("iteration", iteration)
+        self.logger.record("mean_reward", mean_reward)
+        self.logger.record("std_reward", std_reward)
+        self.logger.dump()
+        self.log_to_tensorboard(iteration, mean_reward, std_reward)
+        print(
+            f'Iteration {iteration+1}/{num_outer_updates} - Mean Reward: {mean_reward:.2f} ± {std_reward:.2f}\n')
+        env.cur_episode = 1
+        env.cur_inner_loop = 1
+        env.cur_outer_loop += 1
 
     def log_to_tensorboard(self, iteration, mean_reward, std_reward):
         """
@@ -124,26 +156,29 @@ for iteration in range(num_outer_updates):
     # Perform the meta-update step
     meta_learner.meta_update(scenario_models)
 
-    # Print progress and log to TensorBoard
-    # eval_scenario = Create_scenario(DIST_TYPE)
+    # Evaluate the meta-policy on the test scenario
+    meta_learner.meta_test(env)
 
-    # Set the scenario for the environment
-    meta_learner.env.scenario = test_scenario
-    print("\n\nTEST SCENARIO: ", meta_learner.env.scenario)
-    env.cur_episode = 1
-    env.cur_inner_loop = 1
-    mean_reward, std_reward = gw.evaluate_model(
-        meta_learner.meta_model, meta_learner.env, N_EVAL_EPISODES)
-    meta_learner.logger.record("iteration", iteration)
-    meta_learner.logger.record("mean_reward", mean_reward)
-    meta_learner.logger.record("std_reward", std_reward)
-    meta_learner.logger.dump()
-    meta_learner.log_to_tensorboard(iteration, mean_reward, std_reward)
-    print(
-        f'Iteration {iteration+1}/{num_outer_updates} - Mean Reward: {mean_reward:.2f} ± {std_reward:.2f}\n')
-    env.cur_episode = 1
-    env.cur_inner_loop = 1
-    env.cur_outer_loop += 1
+    # # Print progress and log to TensorBoard
+    # # eval_scenario = Create_scenario(DIST_TYPE)
+
+    # # Set the scenario for the environment
+    # meta_learner.env.scenario = test_scenario
+    # print("\n\nTEST SCENARIO: ", meta_learner.env.scenario)
+    # env.cur_episode = 1
+    # env.cur_inner_loop = 1
+    # mean_reward, std_reward = gw.evaluate_model(
+    #     meta_learner.meta_model, meta_learner.env, N_EVAL_EPISODES)
+    # meta_learner.logger.record("iteration", iteration)
+    # meta_learner.logger.record("mean_reward", mean_reward)
+    # meta_learner.logger.record("std_reward", std_reward)
+    # meta_learner.logger.dump()
+    # meta_learner.log_to_tensorboard(iteration, mean_reward, std_reward)
+    # print(
+    #     f'Iteration {iteration+1}/{num_outer_updates} - Mean Reward: {mean_reward:.2f} ± {std_reward:.2f}\n')
+    # env.cur_episode = 1
+    # env.cur_inner_loop = 1
+    # env.cur_outer_loop += 1
 
 training_end_time = time.time()
 # Save the trained meta-policy
