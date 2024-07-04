@@ -89,7 +89,7 @@ INVEN_LEVEL_MAX = 20  # Capacity limit of the inventory [units]
 # DEMAND_QTY_MAX = 16
 
 # Simulation
-SIM_TIME = 200  # 200 [days] per episode
+SIM_TIME = 100  # 200 [days] per episode
 
 
 # Distribution types
@@ -105,7 +105,7 @@ def DEMAND_QTY_FUNC(scenario):
     # Gaussian distribution
     elif scenario["Dist_Type"] == "GAUSSIAN":
         # Gaussian distribution
-        pass
+        return np.random.normal(scenario['mean'], scenario['std'])
 
 
 def SUP_LEAD_TIME_FUNC():

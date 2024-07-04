@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import GymWrapper as gw
 import time
 import HyperparamTuning as ht  # Module for hyperparameter tuning
@@ -14,13 +15,15 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.logger import configure
 from torch.utils.tensorboard import SummaryWriter
 
-# Hyperparametersㄴ
-alpha = 0.01  # Inner loop step size (사용되지 않는 값) ->  SB3 PPO 기본 값 확인하기
+# Hyperparameters
+alpha = 0.002  # Inner loop step size (사용되지 않는 값) ->  SB3 PPO 기본 값(0.0003)
+BATCH_SIZE = 128  # Default 64
+
 beta = 0.001  # Outer loop step size ## Default: 0.001
-num_scenarios = 5  # Number of full scenarios for meta-training
-scenario_batch_size = 2  # Batch size for random chosen scenarios
+num_scenarios = 11  # Number of full scenarios for meta-training
+scenario_batch_size = 4  # Batch size for random chosen scenarios
 num_inner_updates = N_EPISODES  # Number of gradient steps for adaptation
-num_outer_updates = 150  # Number of outer loop updates -> meta-training iterations
+num_outer_updates = 50  # Number of outer loop updates -> meta-training iterations
 
 # Meta-learning algorithm
 
@@ -34,7 +37,8 @@ class MetaLearner:
         self.policy = policy
         self.alpha = alpha
         self.beta = beta
-        self.meta_model = PPO(policy, self.env, verbose=0, n_steps=SIM_TIME)
+        self.meta_model = PPO(policy, self.env, verbose=0,
+                              n_steps=SIM_TIME, learning_rate=self.alpha, batch_size=BATCH_SIZE)
         self.logger = configure()
         self.writer = SummaryWriter(log_dir='./tensorboard_logs')
 
@@ -43,7 +47,8 @@ class MetaLearner:
         Adapts the meta-policy to a specific task using gradient descent.
         """
         self.env.scenario = scenario  # Reset the scenario for the environment
-        adapted_model = PPO(self.policy, self.env, verbose=0, n_steps=SIM_TIME)
+        adapted_model = PPO(self.policy, self.env, verbose=0,
+                            n_steps=SIM_TIME, learning_rate=self.alpha, batch_size=BATCH_SIZE)
         adapted_model.policy.load_state_dict(
             self.meta_model.policy.state_dict())
         # for _ in range(num_updates):
@@ -103,6 +108,8 @@ class MetaLearner:
         env.cur_inner_loop = 1
         env.cur_outer_loop += 1
 
+        return mean_reward, std_reward
+
     def log_to_tensorboard(self, iteration, mean_reward, std_reward):
         """
         Logs the metrics to TensorBoard.
@@ -115,17 +122,40 @@ class MetaLearner:
 start_time = time.time()
 
 # Create task distribution
-# scenario_distribution = [Create_scenario(
-#     DIST_TYPE) for _ in range(num_scenarios)]
+scenario_distribution = [Create_scenario(
+    DIST_TYPE) for _ in range(num_scenarios)]
 scenario_distribution = [
+    {"Dist_Type": "UNIFORM", "min": 8, "max": 10},
+    {"Dist_Type": "UNIFORM", "min": 9, "max": 11},
+    {"Dist_Type": "UNIFORM", "min": 10, "max": 12},
+    {"Dist_Type": "UNIFORM", "min": 11, "max": 13},
+    {"Dist_Type": "UNIFORM", "min": 12, "max": 14},
+    {"Dist_Type": "UNIFORM", "min": 13, "max": 15},
     {"Dist_Type": "UNIFORM", "min": 8, "max": 11},
     {"Dist_Type": "UNIFORM", "min": 9, "max": 12},
     {"Dist_Type": "UNIFORM", "min": 10, "max": 13},
     {"Dist_Type": "UNIFORM", "min": 11, "max": 14},
-    {"Dist_Type": "UNIFORM", "min": 12, "max": 15},
+    {"Dist_Type": "UNIFORM", "min": 12, "max": 15}
 ]
-
 test_scenario = {"Dist_Type": "UNIFORM", "min": 9, "max": 14}
+# scenario_distribution = [
+#     {"Dist_Type": "UNIFORM", "min": 8, "max": 8},
+#     {"Dist_Type": "UNIFORM", "min": 10, "max": 10},
+#     {"Dist_Type": "UNIFORM", "min": 11, "max": 11},
+#     {"Dist_Type": "UNIFORM", "min": 13, "max": 13},
+#     {"Dist_Type": "UNIFORM", "min": 15, "max": 15},
+# ]
+# test_scenario = {"Dist_Type": "UNIFORM", "min": 12, "max": 12}
+
+
+# scenario_distribution = [
+#     {"Dist_Type": "GAUSSIAN", "mean": 8, "std": 11},
+#     {"Dist_Type": "GAUSSIAN", "mean": 9, "std": 12},
+#     {"Dist_Type": "GAUSSIAN", "mean": 10, "std": 13},
+#     {"Dist_Type": "GAUSSIAN", "mean": 11, "std": 14},
+#     {"Dist_Type": "GAUSSIAN", "mean": 12, "std": 15},
+# ]
+# test_scenario = {"Dist_Type": "GAUSSIAN", "mean": 9, "std": 14}
 
 
 # Create environment
@@ -133,6 +163,7 @@ env = GymInterface()
 
 # Training the Meta-Learner
 meta_learner = MetaLearner(env)
+overfitting_diagnosis = []
 
 for iteration in range(num_outer_updates):
     # Sample a batch of scenarios
@@ -157,7 +188,8 @@ for iteration in range(num_outer_updates):
     meta_learner.meta_update(scenario_models)
 
     # Evaluate the meta-policy on the test scenario
-    meta_learner.meta_test(env)
+    mean_reward, std_reward = meta_learner.meta_test(env)
+    overfitting_diagnosis.append((iteration, mean_reward, std_reward))
 
     # # Print progress and log to TensorBoard
     # # eval_scenario = Create_scenario(DIST_TYPE)
@@ -210,3 +242,13 @@ print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n",
 
 # Optionally render the environment
 env.render()
+
+# Check for meta overfitting
+iterations, mean_rewards, std_rewards = zip(*overfitting_diagnosis)
+plt.errorbar(iterations, mean_rewards, yerr=std_rewards,
+             fmt='-o', label='Test Scenario Reward')
+plt.xlabel('Iteration')
+plt.ylabel('Mean Reward')
+plt.title('Meta Overfitting Diagnosis')
+plt.legend()
+plt.show()

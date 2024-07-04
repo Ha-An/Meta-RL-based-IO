@@ -196,8 +196,9 @@ class GymInterface(gym.Env):
         # Find minimum Delta
         product_outgoing_correction = 0
         for key in P:
-            product_outgoing_correction = max(P[key]["PRODUCTION_RATE"] *
-                                              max(P[key]['QNTY_FOR_INPUT_ITEM']), self.scenario["max"])
+            # product_outgoing_correction = max(P[key]["PRODUCTION_RATE"] * max(P[key]['QNTY_FOR_INPUT_ITEM']), self.scenario["max"])
+            product_outgoing_correction = max(
+                P[key]["PRODUCTION_RATE"] * max(P[key]['QNTY_FOR_INPUT_ITEM']), INVEN_LEVEL_MAX)
 
         # Update STATE_ACTION_REPORT_CORRECTION.append(state_corrected)
         state_corrected = []
