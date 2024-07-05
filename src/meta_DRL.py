@@ -9,7 +9,9 @@ from log_SimPy import *
 from log_RL import *
 import numpy as np
 import gym
+from copy import deepcopy
 import torch
+from torch.optim import Adam
 from torch import nn
 from stable_baselines3 import PPO
 from stable_baselines3.common.logger import configure
@@ -21,9 +23,9 @@ BATCH_SIZE = 128  # Default 64
 
 beta = 0.001  # Outer loop step size ## Default: 0.001
 num_scenarios = 11  # Number of full scenarios for meta-training
-scenario_batch_size = 4  # Batch size for random chosen scenarios
+scenario_batch_size = 2  # Batch size for random chosen scenarios
 num_inner_updates = N_EPISODES  # Number of gradient steps for adaptation
-num_outer_updates = 50  # Number of outer loop updates -> meta-training iterations
+num_outer_updates = 150  # Number of outer loop updates -> meta-training iterations
 
 # Meta-learning algorithm
 
@@ -49,39 +51,122 @@ class MetaLearner:
         self.env.scenario = scenario  # Reset the scenario for the environment
         adapted_model = PPO(self.policy, self.env, verbose=0,
                             n_steps=SIM_TIME, learning_rate=self.alpha, batch_size=BATCH_SIZE)
-        adapted_model.policy.load_state_dict(
-            self.meta_model.policy.state_dict())
+
+        # 전체 모델의 파라미터(정책 네트워크와 가치 함수 네트워크)를 복사
+        adapted_model.set_parameters(self.meta_model.get_parameters())
+        # 정책 네트워크의 파라미터만 복사
+        # adapted_model.policy.load_state_dict(self.meta_model.policy.state_dict())
+
         # for _ in range(num_updates):
         #     # Train the policy on the specific scenario
         #     adapted_model.learn(total_timesteps=SIM_TIME)
         adapted_model.learn(total_timesteps=SIM_TIME*num_updates)
         return adapted_model
 
+    # def meta_update(self, scenario_models):
+    #     """
+    #     Performs the meta-update step by averaging gradients across scenarios.
+    #     """
+    #     meta_grads = []
+    #     for scenario_model in scenario_models:
+    #         # Retrieve gradients from the adapted policy
+    #         grads = []
+    #         for param in scenario_model.policy.parameters():
+    #             if param.grad is not None:
+    #                 grads.append(param.grad.clone())
+    #             else:
+    #                 grads.append(torch.zeros_like(param.data))
+    #         meta_grads.append(grads)
+
+    #     # Average gradients across tasks
+    #     mean_meta_grads = [torch.mean(torch.stack(
+    #         meta_grads_i), dim=0) for meta_grads_i in zip(*meta_grads)]
+
+    #     # Update meta-policy parameters using the outer loop learning rate
+    #     for param, meta_grad in zip(self.meta_model.policy.parameters(), mean_meta_grads):
+    #         param.data -= self.beta * meta_grad
+
+    #     # Zero out the gradients for the next iteration
+    #     # self.meta_model.policy.zero_grad()
+
     def meta_update(self, scenario_models):
-        """
-        Performs the meta-update step by averaging gradients across scenarios.
-        """
-        meta_grads = []
+        # 각 시나리오 모델에서 얻은 경험을 결합
+        combined_rollouts = []
         for scenario_model in scenario_models:
-            # Retrieve gradients from the adapted policy
-            grads = []
-            for param in scenario_model.policy.parameters():
-                if param.grad is not None:
-                    grads.append(param.grad.clone())
-                else:
-                    grads.append(torch.zeros_like(param.data))
-            meta_grads.append(grads)
+            # 각 시나리오 모델로 환경과 상호작용하여 rollout 수집
+            obs = self.env.reset()
+            for _ in range(SIM_TIME):
+                action, _ = scenario_model.predict(obs, deterministic=False)
+                next_obs, reward, done, info = self.env.step(action)
+                combined_rollouts.append((obs, action, reward, next_obs, done))
+                obs = next_obs
+                if done:
+                    obs = self.env.reset()
 
-        # Average gradients across tasks
-        mean_meta_grads = [torch.mean(torch.stack(
-            meta_grads_i), dim=0) for meta_grads_i in zip(*meta_grads)]
+        # 결합된 rollout으로 메타 모델 업데이트
+        self.meta_model.learn(total_timesteps=len(
+            combined_rollouts), reset_num_timesteps=False)
 
-        # Update meta-policy parameters using the outer loop learning rate
-        for param, meta_grad in zip(self.meta_model.policy.parameters(), mean_meta_grads):
-            param.data -= self.beta * meta_grad
+    '''
+    def compute_kl(self, old_policy, new_policy, obs):
+        old_dist = old_policy.get_distribution(obs)
+        new_dist = new_policy.get_distribution(obs)
+        return torch.mean(torch.sum(old_dist.kl_divergence(new_dist), dim=1))
 
-        # Zero out the gradients for the next iteration
-        # self.meta_model.policy.zero_grad()
+    def meta_update(self, scenario_models):
+        old_policy = deepcopy(self.meta_model.policy)
+
+        # 메타 손실 계산
+        meta_loss = 0
+        for scenario_model in scenario_models:
+            obs = self.env.reset()
+            done = False
+            episode_reward = 0
+            while not done:
+                action, _ = scenario_model.predict(obs, deterministic=True)
+                obs, reward, done, _ = self.env.step(action)
+                episode_reward += reward
+            meta_loss -= episode_reward
+        meta_loss /= len(scenario_models)
+
+        # 그래디언트 계산
+        self.meta_model.policy.zero_grad()
+        meta_loss.backward()
+
+        # 라인 서치
+        step_size = self.beta
+        for _ in range(self.backtrack_iters):
+            new_policy = deepcopy(old_policy)
+            for param, grad in zip(new_policy.parameters(), self.meta_model.policy.parameters()):
+                param.data.add_(grad.grad.data, alpha=-step_size)
+
+            # 새로운 메타 손실 계산
+            new_meta_loss = 0
+            for scenario_model in scenario_models:
+                obs = self.env.reset()
+                done = False
+                episode_reward = 0
+                while not done:
+                    action, _ = new_policy(obs)
+                    obs, reward, done, _ = self.env.step(action)
+                    episode_reward += reward
+                new_meta_loss -= episode_reward
+            new_meta_loss /= len(scenario_models)
+
+            # KL 발산 계산
+            obs = self.env.reset()
+            kl_div = self.compute_kl(old_policy, new_policy, obs)
+
+            if kl_div <= self.max_kl and new_meta_loss < meta_loss:
+                self.meta_model.policy.load_state_dict(new_policy.state_dict())
+                print(f"Meta-update accepted with step size {step_size}")
+                break
+
+            step_size *= self.backtrack_coeff
+
+        if step_size < self.beta * (self.backtrack_coeff ** (self.backtrack_iters - 1)):
+            print("Meta-update rejected")
+    '''
 
     def meta_test(self, env):
         """
