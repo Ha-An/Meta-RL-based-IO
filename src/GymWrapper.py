@@ -15,7 +15,8 @@ from torch.utils.tensorboard import SummaryWriter
 class GymInterface(gym.Env):
     def __init__(self):
         super(GymInterface, self).__init__()
-        self.scenario = dict()  # Scenario for the simulation environment
+        self.scenario = {"Dist_Type": "UNIFORM",
+                         "min": 8, "max": 15}  # Default scenario
         self.shortages = 0
         self.total_reward_over_episode = []
         self.total_reward = 0
@@ -67,8 +68,16 @@ class GymInterface(gym.Env):
                 if I[i]["TYPE"] == "Material":
                     actionSpace.append(len(ACTION_SPACE))
             self.action_space = spaces.MultiDiscrete(actionSpace)
-
+            if self.scenario["Dist_Type"] == "UNIFORM":
+                k = INVEN_LEVEL_MAX*2+(self.scenario["max"]+1)
             os = [102 for _ in range(len(I)*2+1)]
+            '''
+            - Inventory Level of Material
+            - Daily Change of Material
+            - Inventory Level of Product
+            - Daily Change of Product
+            - Demand - Inventory Level of Product
+            '''
             self.observation_space = spaces.MultiDiscrete(os)
             print(os)
 
