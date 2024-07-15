@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import GymWrapper as gw
 import time
 from GymWrapper import GymInterface
@@ -19,13 +18,11 @@ from torch.utils.tensorboard import SummaryWriter
 ALPHA = 0.002  # Inner loop step size (사용되지 않는 값) ->  SB3 PPO 기본 값(0.0003)
 BATCH_SIZE = 128  # Default 64
 
-BETA = 0.003  # Outer loop step size ## Default: 0.001
+BETA = 0.005  # Outer loop step size ## Default: 0.001
 num_scenarios = 11  # Number of full scenarios for meta-training
 scenario_batch_size = 4  # Batch size for random chosen scenarios
 num_inner_updates = N_EPISODES  # Number of gradient steps for adaptation
-num_outer_updates = 150  # Number of outer loop updates -> meta-training iterations
-
-COMPARISSON = False  # Compare the meta-trained model with a randomly initialized model
+num_outer_updates = 250  # Number of outer loop updates -> meta-training iterations
 
 # Meta-learning algorithm
 
@@ -47,10 +44,6 @@ class MetaLearner:
                               n_steps=SIM_TIME, learning_rate=self.beta, batch_size=BATCH_SIZE, device=self.device)
         self.meta_model._logger = configure(None, ["stdout"])
 
-        if COMPARISSON:
-            self.random_model = PPO(policy, self.env, verbose=0,
-                                    n_steps=SIM_TIME, learning_rate=self.beta, batch_size=BATCH_SIZE, device=self.device)
-
         self.logger = configure()
         self.writer = SummaryWriter(log_dir='./tensorboard_logs')
 
@@ -59,45 +52,22 @@ class MetaLearner:
         Adapts the meta-policy to a specific task using gradient descent.
         """
         self.env.reset()
-        # self.env.scenario = scenario  # Reset the scenario for the environment
         adapted_model = PPO(self.policy, self.env, verbose=0,
-                            n_steps=SIM_TIME, learning_rate=self.alpha, batch_size=2, device=self.device)
+                            n_steps=SIM_TIME, learning_rate=self.alpha, batch_size=BATCH_SIZE, device=self.device)
 
         # (1) 전체 모델의 파라미터(정책 네트워크와 가치 함수 네트워크)를 복사
         adapted_model.set_parameters(self.meta_model.get_parameters())
         # (2) 정책 네트워크의 파라미터만 복사
         # adapted_model.policy.load_state_dict(self.meta_model.policy.state_dict())
-        # self.verify_models_equality(self.meta_model, adapted_model)
 
-        for _ in range(num_updates):
-            # Train the policy on the specific scenario
-            adapted_model.learn(total_timesteps=SIM_TIME)
-
-        if COMPARISSON:
-            self.env.reset()
-            for _ in range(num_updates):
-                self.random_model.learn(total_timesteps=SIM_TIME)
+        # Learning rate(alpha)를 consist하게 유지
+        # for _ in range(num_updates):
+        #     # Train the policy on the specific scenario
+        #     adapted_model.learn(total_timesteps=SIM_TIME)
+        # Learning rate(alpha)가 점차 감소
+        adapted_model.learn(total_timesteps=SIM_TIME)
 
         return adapted_model
-
-    def verify_models_equality(self, meta_model, adapted_model):
-        # 모델의 상태 딕셔너리를 가져옵니다.
-        meta_state_dict = meta_model.policy.state_dict()
-        adapted_state_dict = adapted_model.policy.state_dict()
-
-        # 두 상태 딕셔너리의 키가 동일한지 확인합니다.
-        if meta_state_dict.keys() != adapted_state_dict.keys():
-            print("The models have different structures.")
-            return False
-
-        # 각 매개변수를 비교합니다.
-        for key in meta_state_dict.keys():
-            if not torch.equal(meta_state_dict[key], adapted_state_dict[key]):
-                print(f"Mismatch in parameter: {key}")
-                return False
-
-        print("All parameters were copied correctly!")
-        return True
 
     def custom_train(self):
         """
@@ -206,9 +176,6 @@ class MetaLearner:
         env.cur_inner_loop = 1
         meta_mean_reward, meta_std_reward = gw.evaluate_model(
             self.meta_model, self.env, N_EVAL_EPISODES)
-        if COMPARISSON:
-            random_mean_reward, random_std_reward = gw.evaluate_model(
-                self.random_model, self.env, N_EVAL_EPISODES)
         self.logger.record("iteration", iteration)
         self.logger.record("mean_reward", meta_mean_reward)
         self.logger.record("std_reward", meta_std_reward)
@@ -220,10 +187,7 @@ class MetaLearner:
         env.cur_inner_loop = 1
         env.cur_outer_loop += 1
 
-        if COMPARISSON:
-            return meta_mean_reward, meta_std_reward, random_mean_reward, random_std_reward
-        else:
-            return meta_mean_reward, meta_std_reward
+        return meta_mean_reward, meta_std_reward
 
     def log_to_tensorboard(self, iteration, mean_reward, std_reward):
         """
@@ -300,16 +264,10 @@ for iteration in range(num_outer_updates):
     meta_learner.meta_update(rollout_list)
 
     # Evaluate the meta-policy on the test scenario
-    if COMPARISSON:
-        meta_mean_reward, meta_std_reward, random_mean_reward, random_std_reward = meta_learner.meta_test(
-            env, test_scenario)
-    else:
-        meta_mean_reward, meta_std_reward = meta_learner.meta_test(
-            env, test_scenario)
+    meta_mean_reward, meta_std_reward = meta_learner.meta_test(
+        env, test_scenario)
 
     meta_rewards.append(meta_mean_reward)
-    if COMPARISSON:
-        random_rewards.append(random_mean_reward)
 
     # Save the trained meta-policy
     meta_learner.meta_model.save("maml_ppo_model")
@@ -321,7 +279,7 @@ print("\nMETA TRAINING COMPLETE \n\n\n")
 # Calculate computation time and print it
 end_time = time.time()
 
-'''
+
 # Evaluate the trained meta-policy
 # eval_scenario = Create_scenario(DIST_TYPE)
 # Set the scenario for the environment
@@ -336,7 +294,7 @@ meta_learner.logger.record("final_mean_reward", mean_reward)
 meta_learner.logger.record("final_std_reward", std_reward)
 meta_learner.logger.dump()
 meta_learner.log_to_tensorboard(num_outer_updates, mean_reward, std_reward)
-'''
+
 
 print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n",
       f"Training time: {(training_end_time - start_time)/60:.2f} minutes \n ",
@@ -344,16 +302,3 @@ print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n",
 
 # Optionally render the environment
 env.render()
-
-if COMPARISSON:
-    # 학습 곡선 비교
-    print("Comparing learning curves...")
-    # 학습 곡선 그리기
-    plt.figure(figsize=(10, 6))
-    plt.plot(meta_rewards, label='Meta-trained Model')
-    plt.plot(random_rewards, label='Random Initialized Model')
-    plt.xlabel('Episodes')
-    plt.ylabel('Reward')
-    plt.title('Learning Curves Comparison')
-    plt.legend()
-    plt.show()
