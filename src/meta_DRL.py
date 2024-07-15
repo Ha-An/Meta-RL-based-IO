@@ -38,8 +38,9 @@ class MetaLearner:
         self.beta = beta
 
         # CUDA 사용 설정
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu")
+        # self.device = torch.device(
+        #     "cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda")
         self.meta_model = PPO(policy, self.env, verbose=0,
                               n_steps=SIM_TIME, learning_rate=self.beta, batch_size=BATCH_SIZE, device=self.device)
         self.meta_model._logger = configure(None, ["stdout"])
@@ -65,7 +66,7 @@ class MetaLearner:
         #     # Train the policy on the specific scenario
         #     adapted_model.learn(total_timesteps=SIM_TIME)
         # Learning rate(alpha)가 점차 감소
-        adapted_model.learn(total_timesteps=SIM_TIME)
+        adapted_model.learn(total_timesteps=SIM_TIME*num_updates)
 
         return adapted_model
 
