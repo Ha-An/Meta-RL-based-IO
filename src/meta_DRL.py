@@ -55,8 +55,8 @@ class MetaLearner:
         # (1) 전체 모델의 파라미터(정책 네트워크와 가치 함수 네트워크)를 복사
         # adapted_model.set_parameters(self.meta_model.get_parameters())
         # (2) 정책 네트워크의 파라미터만 복사
-        adapted_model.policy.load_state_dict(
-            self.meta_model.policy.state_dict())
+        # adapted_model.policy.load_state_dict(
+        #     self.meta_model.policy.state_dict())
 
         adapted_model.learn(total_timesteps=SIM_TIME*num_updates)
 
