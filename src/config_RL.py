@@ -38,7 +38,7 @@ def Create_scenario(dist_type):
 
 
 # Episode
-N_EPISODES = 300  # 3000
+N_EPISODES = 100  # 3000
 
 
 def DEFINE_FOLDER(folder_name):
@@ -63,7 +63,7 @@ OPTIMIZE_HYPERPARAMETERS = False
 N_TRIALS = 15  # 50
 
 # Evaluation
-N_EVAL_EPISODES = 5  # 100
+N_EVAL_EPISODES = 10  # 100
 
 # Export files
 DAILY_REPORT_EXPORT = False

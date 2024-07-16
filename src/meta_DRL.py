@@ -20,7 +20,7 @@ BATCH_SIZE = 128  # Default 64
 
 BETA = 0.005  # Outer loop step size ## Default: 0.001
 num_scenarios = 11  # Number of full scenarios for meta-training
-scenario_batch_size = 4  # Batch size for random chosen scenarios
+scenario_batch_size = 2  # Batch size for random chosen scenarios
 num_inner_updates = N_EPISODES  # Number of gradient steps for adaptation
 num_outer_updates = 250  # Number of outer loop updates -> meta-training iterations
 
@@ -37,12 +37,8 @@ class MetaLearner:
         self.alpha = alpha
         self.beta = beta
 
-        # CUDA 사용 설정
-        # self.device = torch.device(
-        #     "cuda" if torch.cuda.is_available() else "cpu")
-        self.device = torch.device("cuda")
         self.meta_model = PPO(policy, self.env, verbose=0,
-                              n_steps=SIM_TIME, learning_rate=self.beta, batch_size=BATCH_SIZE, device=self.device)
+                              n_steps=SIM_TIME, learning_rate=self.beta, batch_size=BATCH_SIZE)
         self.meta_model._logger = configure(None, ["stdout"])
 
         self.logger = configure()
@@ -54,18 +50,14 @@ class MetaLearner:
         """
         self.env.reset()
         adapted_model = PPO(self.policy, self.env, verbose=0,
-                            n_steps=SIM_TIME, learning_rate=self.alpha, batch_size=BATCH_SIZE, device=self.device)
+                            n_steps=SIM_TIME, learning_rate=self.alpha, batch_size=BATCH_SIZE)
 
         # (1) 전체 모델의 파라미터(정책 네트워크와 가치 함수 네트워크)를 복사
-        adapted_model.set_parameters(self.meta_model.get_parameters())
+        # adapted_model.set_parameters(self.meta_model.get_parameters())
         # (2) 정책 네트워크의 파라미터만 복사
-        # adapted_model.policy.load_state_dict(self.meta_model.policy.state_dict())
+        adapted_model.policy.load_state_dict(
+            self.meta_model.policy.state_dict())
 
-        # Learning rate(alpha)를 consist하게 유지
-        # for _ in range(num_updates):
-        #     # Train the policy on the specific scenario
-        #     adapted_model.learn(total_timesteps=SIM_TIME)
-        # Learning rate(alpha)가 점차 감소
         adapted_model.learn(total_timesteps=SIM_TIME*num_updates)
 
         return adapted_model
