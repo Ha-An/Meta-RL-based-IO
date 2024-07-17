@@ -19,7 +19,7 @@ ALPHA = 0.002  # Inner loop step size (사용되지 않는 값) ->  SB3 PPO 기�
 BATCH_SIZE = 128  # Default 64
 
 BETA = 0.005  # Outer loop step size ## Default: 0.001
-num_scenarios = 11  # Number of full scenarios for meta-training
+num_scenarios = 10  # Number of full scenarios for meta-training
 scenario_batch_size = 2  # Batch size for random chosen scenarios
 num_inner_updates = N_EPISODES  # Number of gradient steps for adaptation
 num_outer_updates = 250  # Number of outer loop updates -> meta-training iterations
@@ -55,8 +55,8 @@ class MetaLearner:
         # (1) 전체 모델의 파라미터(정책 네트워크와 가치 함수 네트워크)를 복사
         # adapted_model.set_parameters(self.meta_model.get_parameters())
         # (2) 정책 네트워크의 파라미터만 복사
-        # adapted_model.policy.load_state_dict(
-        #     self.meta_model.policy.state_dict())
+        adapted_model.policy.load_state_dict(
+            self.meta_model.policy.state_dict())
 
         adapted_model.learn(total_timesteps=SIM_TIME*num_updates)
 
@@ -196,19 +196,19 @@ start_time = time.time()
 # Create task distribution
 scenario_distribution = [Create_scenario(
     DIST_TYPE) for _ in range(num_scenarios)]
-scenario_distribution = [
-    {"Dist_Type": "UNIFORM", "min": 8, "max": 10},
-    {"Dist_Type": "UNIFORM", "min": 9, "max": 11},
-    {"Dist_Type": "UNIFORM", "min": 10, "max": 12},
-    {"Dist_Type": "UNIFORM", "min": 11, "max": 13},
-    {"Dist_Type": "UNIFORM", "min": 12, "max": 14},
-    {"Dist_Type": "UNIFORM", "min": 13, "max": 15},
-    {"Dist_Type": "UNIFORM", "min": 8, "max": 11},
-    {"Dist_Type": "UNIFORM", "min": 9, "max": 12},
-    {"Dist_Type": "UNIFORM", "min": 10, "max": 13},
-    {"Dist_Type": "UNIFORM", "min": 11, "max": 14},
-    {"Dist_Type": "UNIFORM", "min": 12, "max": 15}
-]
+# scenario_distribution = [
+#     {"Dist_Type": "UNIFORM", "min": 8, "max": 10},
+#     {"Dist_Type": "UNIFORM", "min": 9, "max": 11},
+#     {"Dist_Type": "UNIFORM", "min": 10, "max": 12},
+#     {"Dist_Type": "UNIFORM", "min": 11, "max": 13},
+#     {"Dist_Type": "UNIFORM", "min": 12, "max": 14},
+#     {"Dist_Type": "UNIFORM", "min": 13, "max": 15},
+#     {"Dist_Type": "UNIFORM", "min": 8, "max": 11},
+#     {"Dist_Type": "UNIFORM", "min": 9, "max": 12},
+#     {"Dist_Type": "UNIFORM", "min": 10, "max": 13},
+#     {"Dist_Type": "UNIFORM", "min": 11, "max": 14},
+#     {"Dist_Type": "UNIFORM", "min": 12, "max": 15}
+# ]
 test_scenario = {"Dist_Type": "UNIFORM", "min": 9, "max": 14}
 
 # Create environment

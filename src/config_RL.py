@@ -20,13 +20,14 @@ for i in range(len(I)):
 # Remaining demand: Demand quantity - Current product level
 STATE_RANGES.append((0, max(DEMAND_QTY_MAX, INVEN_LEVEL_MAX)))
 '''
+DRL_TENSORBOARD = True
 
 
 def Create_scenario(dist_type):
     if dist_type == "UNIFORM":
         # Uniform distribution
-        param_min = random.randint(1, 16)
-        param_max = random.randint(param_min, 16)
+        param_min = random.randint(8, 15)
+        param_max = random.randint(param_min, 15)
         scenario = {"Dist_Type": dist_type,
                     "min": param_min, "max": param_max}
     elif dist_type == "GAUSSIAN":
@@ -74,7 +75,7 @@ STATE_TEST_EXPORT = False
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
 # Define each dir's parent dir's path
-tensorboard_folder = os.path.join(parent_dir, "tensorboard_log")
+tensorboard_folder = os.path.join(parent_dir, "DRL_tensorboard_log")
 result_csv_folder = os.path.join(parent_dir, "result_CSV")
 STATE_folder = os.path.join(result_csv_folder, "state")
 daily_report_folder = os.path.join(result_csv_folder, "daily_report")

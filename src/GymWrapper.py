@@ -14,6 +14,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 class GymInterface(gym.Env):
     def __init__(self):
+        if DRL_TENSORBOARD:
+            self.writer = SummaryWriter(log_dir=TENSORFLOW_LOGS)
         super(GymInterface, self).__init__()
         self.scenario = {"Dist_Type": "UNIFORM",
                          "min": 8, "max": 15}  # Default scenario
@@ -175,6 +177,13 @@ class GymInterface(gym.Env):
         # Check if the simulation is done
         done = self.simpy_env.now >= SIM_TIME * 24  # 예: SIM_TIME일 이후에 종료
         if done == True:
+            if DRL_TENSORBOARD:
+                self.writer.add_scalar(
+                    "reward", self.total_reward, global_step=self.cur_episode)
+                # Log each cost ratio at the end of the episode
+                for cost_name, cost_value in self.cost_ratio.items():
+                    self.writer.add_scalar(
+                        cost_name, cost_value, global_step=self.cur_episode)
             # print("Total reward: ", self.total_reward)
             self.total_reward_over_episode.append(self.total_reward)
             self.total_reward = 0
