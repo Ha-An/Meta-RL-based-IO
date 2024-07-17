@@ -184,7 +184,8 @@ class GymInterface(gym.Env):
                 for cost_name, cost_value in self.cost_ratio.items():
                     self.writer.add_scalar(
                         cost_name, cost_value, global_step=self.cur_episode)
-            # print("Total reward: ", self.total_reward)
+                print("Episode: ", self.cur_episode,
+                      " / Total reward: ", self.total_reward)
             self.total_reward_over_episode.append(self.total_reward)
             self.total_reward = 0
             self.cur_episode += 1
