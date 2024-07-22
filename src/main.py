@@ -17,11 +17,21 @@ def build_model():
         # model = DQN("MlpPolicy", env, learning_rate=BEST_PARAMS['learning_rate'], gamma=BEST_PARAMS['gamma'],
         #             batch_size=BEST_PARAMS['batch_size'], verbose=0)
     elif RL_ALGORITHM == "DDPG":
-        model = DQN("MlpPolicy", env, verbose=0)
+        model = DQN("MlpPolicy", env, verbose=0,)
         # model = DDPG("MlpPolicy", env, learning_rate=BEST_PARAMS['learning_rate'], gamma=BEST_PARAMS['gamma'],
         #              batch_size=BEST_PARAMS['batch_size'], verbose=0)
     elif RL_ALGORITHM == "PPO":
-        model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME)
+        # [Train 1] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME) DEFAULT: learning_rate=0.0003, batch_size=64 => 28 mins
+        # [Train 2] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME, learning_rate=0.0001, batch_size=16) => 50 mins
+        # [Train 3] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME, learning_rate=0.0002, batch_size=16) => 49 mins
+        # [Train 4] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME, learning_rate=0.00015, batch_size=20) => 44 mins
+        # [Train 5] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME, learning_rate=0.0001, batch_size=20) => 39 mins
+        # [Train 6] # => 40 mins
+        model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME *
+                    4, learning_rate=0.0001, batch_size=20)
+        # [Train 7] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME*2, learning_rate = 0.0001, batch_size = 20) => 36 mins
+        # [Train 8] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME*10, learning_rate = 0.0001, batch_size = 20) => 40 mins
+
         # model = PPO("MlpPolicy", env, learning_rate=BEST_PARAMS['learning_rate'], gamma=BEST_PARAMS['gamma'],
         #             batch_size=BEST_PARAMS['batch_size'], n_steps=SIM_TIME, verbose=0)
         print(env.observation_space)
@@ -70,7 +80,7 @@ else:
     else:
         model = build_model()
         # Train the model
-        model.learn(total_timesteps=SIM_TIME * N_EPISODES)
+        model.learn(total_timesteps=SIM_TIME * N_EPISODES,)
         if SAVE_MODEL:
             model.save(os.path.join(SAVED_MODEL_PATH, SAVED_MODEL_NAME))
             print(f"{SAVED_MODEL_NAME} is saved successfully")

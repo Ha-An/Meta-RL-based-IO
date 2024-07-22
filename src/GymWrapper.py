@@ -289,11 +289,6 @@ def evaluate_model(model, env, num_episodes):
     Visualize_invens(onhand_inventory, demand_qty, order_qty, all_rewards)
     cal_cost_avg()
     # print("Order_Average:", test_order_mean)
-    '''
-    if XAI_TRAIN_EXPORT:
-        df = pd.DataFrame(XAI)  # Create a DataFrame from XAI data
-        df.to_csv(f"{XAI_TRAIN}/XAI_DATA.csv")  # Save XAI data to CSV file
-    '''
     if STATE_TEST_EXPORT:
         export_state("TEST")
     # Calculate mean reward across all episodes

@@ -19,11 +19,12 @@ BATCH_SIZE = 20  # Default 64
 N_STEPS = SIM_TIME*4  # Default 2048
 
 BETA = 0.0003  # Outer loop step size ## Default: 0.001
-train_num_scenarios = 20  # Number of full scenarios for meta-training
-test_num_scenarios = 5  # Number of full scenarios for meta-training
-scenario_batch_size = 2  # Batch size for random chosen scenarios
+# train_num_scenarios = 20  # Number of full scenarios for meta-training
+# test_num_scenarios = 5
+train_scenario_batch_size = 5  # Batch size for random chosen scenarios
+test_scenario_batch_size = 2  # Batch size for random chosen scenarios
 num_inner_updates = N_EPISODES  # Number of gradient steps for adaptation
-num_outer_updates = 10  # Number of outer loop updates -> meta-training iterations
+num_outer_updates = 2  # Number of outer loop updates -> meta-training iterations
 
 # Meta-learning algorithm
 
@@ -152,19 +153,26 @@ class MetaLearner:
             self.meta_model.rollout_buffer = rollout_buffer
             self.custom_train()
 
-    def meta_test(self, env, test_scenario):
+    def meta_test(self):
         """
         Performs the meta-test step by averaging gradients across scenarios.
         """
         # eval_scenario = Create_scenario(DIST_TYPE)
+        test_scenario_batch = [Create_scenario(DIST_TYPE)
+                               for _ in range(test_scenario_batch_size)]
 
         # Set the scenario for the environment
-        self.env.reset()
-        self.env.scenario = test_scenario
-        print("\n\nTEST SCENARIO: ", self.env.scenario)
-        meta_mean_reward, meta_std_reward = gw.evaluate_model(
-            self.meta_model, self.env, N_EVAL_EPISODES)
+        all_rewards = []
+        for test_scenario in test_scenario_batch:
+            self.env.reset()
+            self.env.scenario = test_scenario
+            print("\n\nTEST SCENARIO: ", self.env.scenario)
+            meta_mean_reward, meta_std_reward = gw.evaluate_model(
+                self.meta_model, self.env, N_EVAL_EPISODES)
+            all_rewards.append(meta_mean_reward)
 
+        # Calculate mean reward across all episodes
+        meta_mean_reward = np.mean(all_rewards)
         self.log_to_tensorboard(iteration, meta_mean_reward, meta_std_reward)
 
         return meta_mean_reward, meta_std_reward
@@ -180,26 +188,6 @@ class MetaLearner:
 # Start timing the computation
 start_time = time.time()
 
-# Create task distribution
-train_scenario_distribution = [Create_scenario(
-    DIST_TYPE) for _ in range(train_num_scenarios)]
-# scenario_distribution = [
-#     {"Dist_Type": "UNIFORM", "min": 8, "max": 10},
-#     {"Dist_Type": "UNIFORM", "min": 9, "max": 11},
-#     {"Dist_Type": "UNIFORM", "min": 10, "max": 12},
-#     {"Dist_Type": "UNIFORM", "min": 11, "max": 13},
-#     {"Dist_Type": "UNIFORM", "min": 12, "max": 14},
-#     {"Dist_Type": "UNIFORM", "min": 13, "max": 15},
-#     {"Dist_Type": "UNIFORM", "min": 8, "max": 11},
-#     {"Dist_Type": "UNIFORM", "min": 9, "max": 12},
-#     {"Dist_Type": "UNIFORM", "min": 10, "max": 13},
-#     {"Dist_Type": "UNIFORM", "min": 11, "max": 14},
-#     {"Dist_Type": "UNIFORM", "min": 12, "max": 15}
-# ]
-test_scenario = {"Dist_Type": "UNIFORM", "min": 9, "max": 14}
-# test_scenario_distribution = [Create_scenario(
-#     DIST_TYPE) for _ in range(test_num_scenarios)]
-
 # Create environment
 env = GymInterface()
 
@@ -211,11 +199,8 @@ random_rewards = []
 
 for iteration in range(num_outer_updates):
     # Sample a batch of scenarios
-    if len(train_scenario_distribution) > scenario_batch_size:
-        scenario_batch = np.random.choice(
-            train_scenario_distribution, scenario_batch_size, replace=False)
-    else:
-        scenario_batch = train_scenario_distribution
+    scenario_batch = [Create_scenario(DIST_TYPE)
+                      for _ in range(train_scenario_batch_size)]
 
     # Adapt the meta-policy to each scenario in the batch
     scenario_models = []
@@ -241,26 +226,20 @@ for iteration in range(num_outer_updates):
 
     # Perform the meta-update step
     meta_learner.meta_update(rollout_list)
-    '''
-    for test_scenario in test_scenario_distribution:
-        meta_mean_reward, meta_std_reward = meta_learner.meta_test(
-            env, test_scenario)
-        meta_rewards.append(meta_mean_reward)
 
-    '''
     # Evaluate the meta-policy on the test scenario
-    meta_mean_reward, meta_std_reward = meta_learner.meta_test(
-        env, test_scenario)
+    meta_mean_reward, meta_std_reward = meta_learner.meta_test()
     meta_rewards.append(meta_mean_reward)
     print(
         f'Iteration {iteration+1}/{num_outer_updates} - Mean Reward: {meta_mean_reward:.2f} ± {meta_std_reward:.2f}\n')
+    print('===========================================================')
 
     env.cur_episode = 1
     env.cur_inner_loop = 1
     env.cur_outer_loop += 1
 
     # Save the trained meta-policy
-    meta_learner.meta_model.save("maml_ppo_model")
+    meta_learner.meta_model.save(SAVED_MODEL_NAME)
 
 training_end_time = time.time()
 
@@ -271,13 +250,9 @@ end_time = time.time()
 
 
 # Evaluate the trained meta-policy
-# eval_scenario = Create_scenario(DIST_TYPE)
-# Set the scenario for the environment
-meta_learner.env.scenario = test_scenario
-mean_reward, std_reward = gw.evaluate_model(
-    meta_learner.meta_model, meta_learner.env, N_EVAL_EPISODES)
+meta_mean_reward, meta_std_reward = meta_learner.meta_test()
 print(
-    f"Mean reward over {N_EVAL_EPISODES} episodes: {mean_reward:.2f} +/- {std_reward:.2f}")
+    f"Mean reward over {N_EVAL_EPISODES} episodes: {meta_mean_reward:.2f} +/- {meta_std_reward:.2f}")
 
 print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n",
       f"Training time: {(training_end_time - start_time)/60:.2f} minutes \n ",

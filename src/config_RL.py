@@ -20,7 +20,7 @@ for i in range(len(I)):
 # Remaining demand: Demand quantity - Current product level
 STATE_RANGES.append((0, max(DEMAND_QTY_MAX, INVEN_LEVEL_MAX)))
 '''
-DRL_TENSORBOARD = True
+DRL_TENSORBOARD = False
 
 
 def Create_scenario(dist_type):
@@ -39,7 +39,7 @@ def Create_scenario(dist_type):
 
 
 # Episode
-N_EPISODES = 10000  # 3000
+N_EPISODES = 10  # 3000
 
 
 def DEFINE_FOLDER(folder_name):
@@ -115,7 +115,7 @@ VIZ_COST_BOX = False
 # Saved Model
 SAVED_MODEL_PATH = os.path.join(parent_dir, "Saved_Model")
 SAVE_MODEL = False
-SAVED_MODEL_NAME = "PPO_MODEL_SIM500"
+SAVED_MODEL_NAME = "E1_MAML_PPO"
 
 # Load Model
 LOAD_MODEL = False
