@@ -39,7 +39,7 @@ def Create_scenario(dist_type):
 
 
 # Episode
-N_EPISODES = 10  # 3000
+N_EPISODES = 1  # 3000
 
 
 def DEFINE_FOLDER(folder_name):
@@ -63,13 +63,19 @@ def save_path(path):
 OPTIMIZE_HYPERPARAMETERS = False
 N_TRIALS = 15  # 50
 
+# RL_Options
+DAILY_CHANGE=0 # 0 Means False , 1 Means True
+INTRANSIT=0 # 0 Means False , 1 Means True
+USE_CORRECTION=True
+
+
 # Evaluation
 N_EVAL_EPISODES = 10  # 100
 
 # Export files
 DAILY_REPORT_EXPORT = False
 STATE_TRAIN_EXPORT = False
-STATE_TEST_EXPORT = False
+STATE_TEST_EXPORT = True
 
 # Define parent dir's path
 current_dir = os.path.dirname(__file__)

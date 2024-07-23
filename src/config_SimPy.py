@@ -74,6 +74,15 @@ def save_path(path):
     os.makedirs(path)
     return path
 
+# Validation
+# 시뮬레이션 Validaition을 위한 코드 차후 지울것
+VALIDATION = False 
+def validation_input(day):
+    if day%2==1:
+        action = [1]
+    else:
+        action = [3]
+    return action
 
 # Define parent dir's path
 current_dir = os.path.dirname(__file__)
@@ -89,7 +98,7 @@ INVEN_LEVEL_MAX = 20  # Capacity limit of the inventory [units]
 # DEMAND_QTY_MAX = 16
 
 # Simulation
-SIM_TIME = 100  # 200 [days] per episode
+SIM_TIME = 7  # 200 [days] per episode
 
 
 # Distribution types
@@ -128,3 +137,8 @@ PRINT_SIM = False
 HOURLY_COST_MODEL = True
 VISUALIAZTION = [1, 0, 1]  # PRINT RAW_MATERIAL, WIP, PRODUCT
 TIME_CORRECTION = 0.0001
+
+MAT_COUNT = 0
+for id in I.keys():
+      if I[id]["TYPE"] == "Material":
+            MAT_COUNT += 1

@@ -98,7 +98,7 @@ else:
     print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n",
           f"Training time: {(training_end_time - start_time)/60:.2f} minutes \n ",
           f"Test time:{(end_time - training_end_time)/60:.2f} minutes")
-
+    print(model.policy.state_dict().keys())
 
 # Optionally render the environment
 env.render()
