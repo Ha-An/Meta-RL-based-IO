@@ -104,7 +104,7 @@ SIM_TIME = 100  # 200 [days] per episode
 # Distribution types
 DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
 
-# RL_Options
+# Options
 DAILY_CHANGE = 1 # 0 Means False , 1 Means True
 INTRANSIT = 1 # 0 Means False , 1 Means True
 
