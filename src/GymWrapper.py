@@ -156,7 +156,7 @@ class GymInterface(gym.Env):
         env.Cost.update_cost_log(self.inventoryList)
         if PRINT_SIM:
             cost = dict(DAILY_COST_REPORT)
-        # Cost Ratio update
+        # Cost Dict update
         for key in DAILY_COST_REPORT.keys():
             self.cost_dict[key] += DAILY_COST_REPORT[key]
 
