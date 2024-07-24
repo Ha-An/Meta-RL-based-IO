@@ -24,6 +24,7 @@ def visualization(export_Daily_Report):
     # Variable for specifying the position of the graph
     graph_place = 1
     for x in VISUALIAZTION:
+        # count for searching inventory of that type
         count = 0
         if x == 1:
             plt.subplot(int(f"{visual}1{graph_place}"))
