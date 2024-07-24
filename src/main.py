@@ -78,8 +78,8 @@ else:
                 SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)
         print(f"{LOAD_MODEL_NAME} is loaded successfully")
     else:
-        print("CORRECTION: ", USE_CORRECTION)
-        print("Env_Reset: ", env.reset())
+        print("State_CORRECTION: ", USE_CORRECTION)
+        print("Initial_Obs: ", env.reset())
         model = build_model()
         # Train the model
         model.learn(total_timesteps=SIM_TIME * N_EPISODES,)
