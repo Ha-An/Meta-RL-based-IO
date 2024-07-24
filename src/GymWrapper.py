@@ -29,7 +29,7 @@ class GymInterface(gym.Env):
         # For functions that only work when testing the model
         self.model_test = False
         # Record the cumulative value of each cost
-        self.cost_ratio = {
+        self.cost_dict = {
             'Holding cost': 0,
             'Process cost': 0,
             'Delivery cost': 0,
@@ -73,8 +73,9 @@ class GymInterface(gym.Env):
             # if self.scenario["Dist_Type"] == "UNIFORM":
             #    k = INVEN_LEVEL_MAX*2+(self.scenario["max"]+1)
 
+            # DAILY_CHANGE + INTRANSIT + REMAINING_DEMAND
             if USE_CORRECTION:
-                os = [102 for _ in range(len(I)*(1+DAILY_CHANGE)+MAT_COUNT*INTRANSIT+1)] # DAILY_CHANGE + INTRANSIT + REMAINING_DEMAND
+                os = [102 for _ in range(len(I)*(1+DAILY_CHANGE)+MAT_COUNT*INTRANSIT+1)] 
             else:
                 os = [INVEN_LEVEL_MAX*2 for _ in range(len(I)*(1+DAILY_CHANGE)+MAT_COUNT*INTRANSIT+1)]
 
@@ -89,7 +90,7 @@ class GymInterface(gym.Env):
             print(os)
 
     def reset(self):
-        self.cost_ratio = {
+        self.cost_dict = {
             'Holding cost': 0,
             'Process cost': 0,
             'Delivery cost': 0,
@@ -105,9 +106,14 @@ class GymInterface(gym.Env):
                                   self.productionList, self.sales, self.customer, self.providerList, self.daily_events, I, self.scenario)
         env.update_daily_report(self.inventoryList)
 
-        # print("==========Reset==========")
         state_real = self.get_current_state()
-        return self.correct_state_for_SB3()
+        state_correction = self.correct_state_for_SB3()
+        # print("==========Reset==========")
+        if USE_CORRECTION:
+            return state_correction
+        else:
+            return state_real 
+       
 
     def step(self, action):
 
@@ -139,20 +145,20 @@ class GymInterface(gym.Env):
         self.simpy_env.run(until=self.simpy_env.now + 24)
         env.update_daily_report(self.inventoryList)
         # Capture the next state of the environment
-        # Capture the next state of the environment
-        state_real=self.get_current_state()
-        state_corr=self.correct_state_for_SB3()
+        state_real = self.get_current_state()
+        state_corr = self.correct_state_for_SB3()
+        # Set the next state
         if USE_CORRECTION:
-            next_state=state_corr
+            next_state = state_corr
         else:
             next_state = state_real
         # Calculate the total cost of the day
         env.Cost.update_cost_log(self.inventoryList)
         if PRINT_SIM:
             cost = dict(DAILY_COST_REPORT)
-
+        # Cost Ratio update
         for key in DAILY_COST_REPORT.keys():
-            self.cost_ratio[key] += DAILY_COST_REPORT[key]
+            self.cost_dict[key] += DAILY_COST_REPORT[key]
 
         env.Cost.clear_cost()
 
@@ -174,6 +180,7 @@ class GymInterface(gym.Env):
                         print(
                             f"[Order Quantity for {I[_]['NAME']}] ", action[i])
                         i += 1
+            # Simpy simulation print
             for log in self.daily_events:
                 print(log)
             print("[Daily Total Cost] ", -reward)
@@ -195,7 +202,7 @@ class GymInterface(gym.Env):
                 self.writer.add_scalar(
                     "reward", self.total_reward, global_step=self.cur_episode)
                 # Log each cost ratio at the end of the episode
-                for cost_name, cost_value in self.cost_ratio.items():
+                for cost_name, cost_value in self.cost_dict.items():
                     self.writer.add_scalar(
                         cost_name, cost_value, global_step=self.cur_episode)
                 print("Episode: ", self.cur_episode,
@@ -312,7 +319,7 @@ def evaluate_model(model, env, num_episodes):
 
         # Calculate mean order for the episode
         test_order_mean.append(sum(ORDER_HISTORY) / len(ORDER_HISTORY))
-        COST_RATIO_HISTORY.append(env.cost_ratio)
+        COST_HISTORY.append(env.cost_dict)
     if VISUALIAZTION.count(1) > 0:
         visualization.visualization(DAILY_REPORTS)
     Visualize_invens(onhand_inventory, demand_qty, order_qty, all_rewards)
@@ -341,9 +348,9 @@ def cal_cost_avg():
 
     # Cal_cost_AVG
     for x in range(N_EVAL_EPISODES):
-        for key in COST_RATIO_HISTORY[x].keys():
-            cost_avg[key] += COST_RATIO_HISTORY[x][key]
-        total_avg.append(sum(COST_RATIO_HISTORY[x].values()))
+        for key in COST_HISTORY[x].keys():
+            cost_avg[key] += COST_HISTORY[x][key]
+        total_avg.append(sum(COST_HISTORY[x].values()))
     for key in cost_avg.keys():
         cost_avg[key] = cost_avg[key]/N_EVAL_EPISODES
     # Visualize

@@ -98,15 +98,23 @@ INVEN_LEVEL_MAX = 20  # Capacity limit of the inventory [units]
 # DEMAND_QTY_MAX = 16
 
 # Simulation
-SIM_TIME = 7  # 200 [days] per episode
+SIM_TIME = 100  # 200 [days] per episode
 
 
 # Distribution types
 DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
 
-# Uncertainty factors
+# RL_Options
+DAILY_CHANGE = 1 # 0 Means False , 1 Means True
+INTRANSIT = 1 # 0 Means False , 1 Means True
 
+# Count for intransit inventory
+MAT_COUNT = 0
+for id in I.keys():
+      if I[id]["TYPE"] == "Material":
+            MAT_COUNT += 1
 
+# Create demand
 def DEMAND_QTY_FUNC(scenario):
     # Uniform distribution
     if scenario["Dist_Type"] == "UNIFORM":
@@ -138,7 +146,3 @@ HOURLY_COST_MODEL = True
 VISUALIAZTION = [1, 0, 1]  # PRINT RAW_MATERIAL, WIP, PRODUCT
 TIME_CORRECTION = 0.0001
 
-MAT_COUNT = 0
-for id in I.keys():
-      if I[id]["TYPE"] == "Material":
-            MAT_COUNT += 1

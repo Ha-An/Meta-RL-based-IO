@@ -34,7 +34,7 @@ def build_model():
 
         # model = PPO("MlpPolicy", env, learning_rate=BEST_PARAMS['learning_rate'], gamma=BEST_PARAMS['gamma'],
         #             batch_size=BEST_PARAMS['batch_size'], n_steps=SIM_TIME, verbose=0)
-        print(env.observation_space)
+
     return model
 
 
@@ -78,6 +78,8 @@ else:
                 SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)
         print(f"{LOAD_MODEL_NAME} is loaded successfully")
     else:
+        print("CORRECTION: ", USE_CORRECTION)
+        print("Env_Reset: ", env.reset())
         model = build_model()
         # Train the model
         model.learn(total_timesteps=SIM_TIME * N_EPISODES,)
@@ -98,7 +100,6 @@ else:
     print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n",
           f"Training time: {(training_end_time - start_time)/60:.2f} minutes \n ",
           f"Test time:{(end_time - training_end_time)/60:.2f} minutes")
-    print(model.policy.state_dict().keys())
 
 # Optionally render the environment
 env.render()

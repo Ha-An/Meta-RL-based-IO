@@ -2,7 +2,6 @@ import simpy
 import numpy as np
 from config_SimPy import *  # Assuming this imports necessary configurations
 from log_SimPy import *  # Assuming this imports necessary logging functionalities
-from config_RL import *
 
 class Inventory:
     def __init__(self, env, item_id, holding_cost):
@@ -14,7 +13,8 @@ class Inventory:
         # Inventory in transition (e.g., being delivered)
         self.in_transition_inventory = 0
         self.capacity_limit = INVEN_LEVEL_MAX  # Maximum capacity of the inventory
-        # Daily inventory report template
+        # Daily inventory report template 
+        # Day, Inventory_Name, Inventory_Type, Inventory at the start of the day, Income_Inventory(Onhand), Outgoing_inventory(Onhand), Intransit_Inventory, Inventory at the end of the day
         self.daily_inven_report = [f"Day {self.env.now // 24+1}", I[self.item_id]['NAME'],
                                    I[self.item_id]['TYPE'], self.on_hand_inventory, 0, 0, 0, 0]
         # Unit holding cost per hour
@@ -71,13 +71,13 @@ class Inventory:
         """
         if inven_type=="ON_HAND":
             if quantity_of_change > 0:
-                self.daily_inven_report[4] += quantity_of_change#Income Inventory
+                self.daily_inven_report[4] += quantity_of_change# Income Inventory
 
             else:
-                self.daily_inven_report[5] -= quantity_of_change#Outgoing Invnetory
+                self.daily_inven_report[5] -= quantity_of_change# Outgoing Invnetory
 
         elif inven_type=="IN_TRANSIT":
-            self.daily_inven_report[6]+=quantity_of_change#In_Transit Inventory
+            self.daily_inven_report[6]+=quantity_of_change# In_Transit Inventory
 
 
 class Supplier:
@@ -160,8 +160,7 @@ class Procurement:
                 # Record inventory
                 daily_events.append(
                     f"{present_daytime(self.env.now)}: {I[self.item_id]['NAME']}\'s Total_Inventory                            : {inventory.in_transition_inventory+inventory.on_hand_inventory} units  ")
-            yield self.env.timeout(I[self.item_id]["MANU_ORDER_CYCLE"] *
-                                   24)  # Wait for the next order cycle
+            yield self.env.timeout(I[self.item_id]["MANU_ORDER_CYCLE"] * 24)  # Wait for the next order cycle
             # record order history
 
 

@@ -20,7 +20,7 @@ for i in range(len(I)):
 # Remaining demand: Demand quantity - Current product level
 STATE_RANGES.append((0, max(DEMAND_QTY_MAX, INVEN_LEVEL_MAX)))
 '''
-DRL_TENSORBOARD = False
+DRL_TENSORBOARD = True
 
 
 def Create_scenario(dist_type):
@@ -58,28 +58,25 @@ def save_path(path):
     os.makedirs(path)
     return path
 
+# Using correction option
+USE_CORRECTION=True
 
 # Hyperparameter optimization
 OPTIMIZE_HYPERPARAMETERS = False
 N_TRIALS = 15  # 50
 
-# RL_Options
-DAILY_CHANGE=0 # 0 Means False , 1 Means True
-INTRANSIT=0 # 0 Means False , 1 Means True
-USE_CORRECTION=True
-
-
 # Evaluation
-N_EVAL_EPISODES = 10  # 100
+N_EVAL_EPISODES = 1  # 100
 
 # Export files
 DAILY_REPORT_EXPORT = False
 STATE_TRAIN_EXPORT = False
-STATE_TEST_EXPORT = True
+STATE_TEST_EXPORT = False
 
 # Define parent dir's path
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
+
 # Define each dir's parent dir's path
 tensorboard_folder = os.path.join(parent_dir, "DRL_tensorboard_log")
 result_csv_folder = os.path.join(parent_dir, "result_CSV")
@@ -113,14 +110,14 @@ else:
     os.makedirs(GRAPH_FOLDER)
 '''
 # Visualize_Graph
-VIZ_INVEN_LINE = False
-VIZ_INVEN_PIE = False
-VIZ_COST_PIE = False
-VIZ_COST_BOX = False
+VIZ_INVEN_LINE = True
+VIZ_INVEN_PIE = True
+VIZ_COST_PIE = True
+VIZ_COST_BOX = True
 
 # Saved Model
 SAVED_MODEL_PATH = os.path.join(parent_dir, "Saved_Model")
-SAVE_MODEL = False
+SAVE_MODEL = True
 SAVED_MODEL_NAME = "E1_MAML_PPO"
 
 # Load Model
