@@ -21,6 +21,8 @@ SHAP_PLOT_TYPE = 'bar'
 'image': Supports visualization of Shap values for image data
 '''
 
+# Read data for training and validation
+
 
 def read_path():
     current_dir = os.path.dirname(__file__)

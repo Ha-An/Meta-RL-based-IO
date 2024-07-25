@@ -38,68 +38,34 @@ def build_model():
     return model
 
 
-'''
-def export_report(inventoryList):
-    for x in range(len(inventoryList)):
-        for report in DAILY_REPORTS:
-            export_Daily_Report.append(report[x])
-    daily_reports = pd.DataFrame(export_Daily_Report)
-    daily_reports.columns = ["Day", "Name", "Type",
-                         "Start", "Income", "Outcome", "End"]
-    daily_reports.to_csv("./Daily_Report.csv")
-'''
-
-
 # Start timing the computation
 start_time = time.time()
 
 # Create environment
 env = GymInterface()
 
-# Run hyperparameter optimization if enabled
-if OPTIMIZE_HYPERPARAMETERS:
-    ht.run_optuna()
-    # Calculate computation time and print it
-    end_time = time.time()
-    print(f"Computation time: {(end_time - start_time)/60:.2f} minutes ")
-else:
-    # Build the model
-    if LOAD_MODEL:
-        if RL_ALGORITHM == "DQN":
-            model = DQN.load(os.path.join(
-                SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)
+# Build the model
+model = build_model()
+if LOAD_MODEL:
+    saved_model = PPO.load(os.path.join(
+        SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)  # Load the saved model
+    # 정책 네트워크의 파라미터 복사
+    model.policy.load_state_dict(saved_model.policy.state_dict())
 
-        elif RL_ALGORITHM == "DDPG":
-            model = DDPG.load(os.path.join(
-                SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)
+# Train the model
+model.learn(total_timesteps=SIM_TIME * N_EPISODES)
 
-        elif RL_ALGORITHM == "PPO":
-            model = PPO.load(os.path.join(
-                SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)
-        print(f"{LOAD_MODEL_NAME} is loaded successfully")
-    else:
-        print("State_CORRECTION: ", USE_CORRECTION)
-        print("Initial_Obs: ", env.reset())
-        model = build_model()
-        # Train the model
-        model.learn(total_timesteps=SIM_TIME * N_EPISODES,)
-        if SAVE_MODEL:
-            model.save(os.path.join(SAVED_MODEL_PATH, SAVED_MODEL_NAME))
-            print(f"{SAVED_MODEL_NAME} is saved successfully")
+training_end_time = time.time()
 
-        if STATE_TRAIN_EXPORT:
-            gw.export_state('TRAIN')
-    training_end_time = time.time()
-
-    # Evaluate the trained model
-    mean_reward, std_reward = gw.evaluate_model(model, env, N_EVAL_EPISODES)
-    print(
-        f"Mean reward over {N_EVAL_EPISODES} episodes: {mean_reward:.2f} +/- {std_reward:.2f}")
-    # Calculate computation time and print it
-    end_time = time.time()
-    print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n",
-          f"Training time: {(training_end_time - start_time)/60:.2f} minutes \n ",
-          f"Test time:{(end_time - training_end_time)/60:.2f} minutes")
+# Evaluate the trained model
+mean_reward, std_reward = gw.evaluate_model(model, env, N_EVAL_EPISODES)
+print(
+    f"Mean reward over {N_EVAL_EPISODES} episodes: {mean_reward:.2f} +/- {std_reward:.2f}")
+# Calculate computation time and print it
+end_time = time.time()
+print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n",
+      f"Training time: {(training_end_time - start_time)/60:.2f} minutes \n ",
+      f"Test time:{(end_time - training_end_time)/60:.2f} minutes")
 
 
 # Optionally render the environment

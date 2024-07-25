@@ -75,6 +75,19 @@ def save_path(path):
     return path
 
 
+# Validation
+# 시뮬레이션 Validaition을 위한 코드 차후 지울것
+VALIDATION = False
+
+
+def validation_input(day):
+    if day % 2 == 1:
+        action = [1]
+    else:
+        action = [3]
+    return action
+
+
 # Define parent dir's path
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
@@ -95,7 +108,17 @@ SIM_TIME = 100  # 200 [days] per episode
 # Distribution types
 DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
 
-# Uncertainty factors
+# Options for RL states
+DAILY_CHANGE = 1  # 0: False / 1: True
+INTRANSIT = 1  # 0: False / 1: True
+
+# Count for intransit inventory
+MAT_COUNT = 0
+for id in I.keys():
+    if I[id]["TYPE"] == "Material":
+        MAT_COUNT += 1
+
+# Create demand
 
 
 def DEMAND_QTY_FUNC(scenario):
@@ -118,7 +141,7 @@ ORDER_QTY = 1
 REORDER_LEVEL = 0
 
 # Print logs
-PRINT_SIM = False
+PRINT_SIM = True
 # PRINT_LOG_TIMESTEP = True
 # PRINT_LOG_DAILY_REPORT = True
 

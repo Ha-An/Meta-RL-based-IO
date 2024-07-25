@@ -14,9 +14,12 @@ class Inventory:
         # Inventory in transition (e.g., being delivered)
         self.in_transition_inventory = 0
         self.capacity_limit = INVEN_LEVEL_MAX  # Maximum capacity of the inventory
-        # Daily inventory report template
+        # Daily inventory report template:
+        '''
+        Day / Inventory_Name / Inventory_Type / Inventory at the start of the day / Income_Inventory(Onhand) / Outgoing_inventory(Onhand) / Intransit_Inventory / Inventory at the end of the day
+        '''
         self.daily_inven_report = [f"Day {self.env.now // 24+1}", I[self.item_id]['NAME'],
-                                   I[self.item_id]['TYPE'], self.on_hand_inventory, 0, 0, 0]
+                                   I[self.item_id]['TYPE'], self.on_hand_inventory, 0, 0, 0, 0]
         # Unit holding cost per hour
         self.unit_holding_cost = holding_cost / 24
         self.holding_cost_last_updated = 0.0  # Last time holding cost was updated
@@ -32,6 +35,7 @@ class Inventory:
         """
         Update the inventory level based on the quantity of change and log the event.
         """
+        '''
         if I[self.item_id]["TYPE"] == "Material":
             if quantity_of_change < 0 and inven_type == "ON_HAND":
                 self._update_report(quantity_of_change)
@@ -40,6 +44,7 @@ class Inventory:
                 self._update_report(quantity_of_change)
         else:
             self._update_report(quantity_of_change)
+        '''
 
         if inven_type == "ON_HAND":
             # Update on-hand inventory
@@ -62,17 +67,24 @@ class Inventory:
         elif inven_type == "IN_TRANSIT":
             # Update in-transition inventory
             self.in_transition_inventory += quantity_of_change
+        self._update_report(quantity_of_change, inven_type)
 
-    def _update_report(self, quantity_of_change):
+    def _update_report(self, quantity_of_change, inven_type):
         """
         Update the daily inventory report based on the quantity of change.
         """
-        if quantity_of_change > 0:
-            self.daily_inven_report[4] += quantity_of_change
-        elif quantity_of_change == 0:
-            pass
-        else:
-            self.daily_inven_report[5] -= quantity_of_change
+        if inven_type == "ON_HAND":
+            if quantity_of_change > 0:
+                # Income Inventory
+                self.daily_inven_report[4] += quantity_of_change
+
+            else:
+                # Outgoing Invnetory
+                self.daily_inven_report[5] -= quantity_of_change
+
+        elif inven_type == "IN_TRANSIT":
+            # In_Transit Inventory
+            self.daily_inven_report[6] += quantity_of_change
 
 
 class Supplier:
@@ -155,8 +167,8 @@ class Procurement:
                 # Record inventory
                 daily_events.append(
                     f"{present_daytime(self.env.now)}: {I[self.item_id]['NAME']}\'s Total_Inventory                            : {inventory.in_transition_inventory+inventory.on_hand_inventory} units  ")
-            yield self.env.timeout(I[self.item_id]["MANU_ORDER_CYCLE"] *
-                                   24)  # Wait for the next order cycle
+            # Wait for the next order cycle
+            yield self.env.timeout(I[self.item_id]["MANU_ORDER_CYCLE"] * 24)
             # record order history
 
 
@@ -417,14 +429,25 @@ def simpy_event_processes(simpy_env, inventoryList, procurementList, productionL
 def update_daily_report(inventoryList):
     # Update daily reports for inventory
     day_list = []
+    day_dict = {}
     for inven in inventoryList:
         inven.daily_inven_report[-1] = inven.on_hand_inventory
         day_list = day_list+(inven.daily_inven_report)
+
+        day_dict[f"On_Hand_{I[inven.item_id]['NAME']}"] = inven.on_hand_inventory
+        # daily_inven_report[4]: Income, inven.daily_inven_report[5]: Outgoing
+        day_dict[f"Daily_Change_{I[inven.item_id]['NAME']}"] = inven.daily_inven_report[4] - \
+            inven.daily_inven_report[5]
+        if INTRANSIT == 1:
+            if I[inven.item_id]["TYPE"] == "Material":
+                # inven.daily_inven_report[6]: In_Transit
+                day_dict[f"In_Transit_{I[inven.item_id]['NAME']}"] = inven.daily_inven_report[6]
     DAILY_REPORTS.append(day_list)
+    STATE_DICT.append(day_dict)
     # Reset report
     for inven in inventoryList:
         inven.daily_inven_report = [f"Day {inven.env.now//24+1}", I[inven.item_id]['NAME'], I[inven.item_id]['TYPE'],
-                                    inven.on_hand_inventory, 0, 0, 0]  # inventory report
+                                    inven.on_hand_inventory, 0, 0, inven.in_transition_inventory, 0]  # inventory report
 
 
 '''

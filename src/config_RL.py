@@ -20,14 +20,14 @@ for i in range(len(I)):
 # Remaining demand: Demand quantity - Current product level
 STATE_RANGES.append((0, max(DEMAND_QTY_MAX, INVEN_LEVEL_MAX)))
 '''
-DRL_TENSORBOARD = False
+DRL_TENSORBOARD = True
 
 
 def Create_scenario(dist_type):
     if dist_type == "UNIFORM":
         # Uniform distribution
-        param_min = random.randint(8, 15)
-        param_max = random.randint(param_min, 15)
+        param_min = random.randint(9, 13)
+        param_max = random.randint(param_min, 13)
         scenario = {"Dist_Type": dist_type,
                     "min": param_min, "max": param_max}
     elif dist_type == "GAUSSIAN":
@@ -39,7 +39,7 @@ def Create_scenario(dist_type):
 
 
 # Episode
-N_EPISODES = 10  # 3000
+N_EPISODES = 2  # 3000
 
 
 def DEFINE_FOLDER(folder_name):
@@ -62,6 +62,9 @@ def save_path(path):
 # Hyperparameter optimization
 OPTIMIZE_HYPERPARAMETERS = False
 N_TRIALS = 15  # 50
+
+# Using correction option
+USE_CORRECTION = False
 
 # Evaluation
 N_EVAL_EPISODES = 10  # 100
@@ -119,7 +122,7 @@ SAVED_MODEL_NAME = "E1_MAML_PPO"
 
 # Load Model
 LOAD_MODEL = False
-LOAD_MODEL_NAME = "PPO_MODEL_SIM500"
+LOAD_MODEL_NAME = "E1_MAML_PPO"
 
 # Non-stationary demand
 mean_demand = 100
