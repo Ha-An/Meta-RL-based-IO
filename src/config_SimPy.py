@@ -23,14 +23,15 @@ import numpy as np
 
 #### Processes #####################################################################
 # ID: Index of the element in the dictionary
-# PRODUCTION_RATE [units/day]
+# PRODUCTION_RATE [units/day] (Production rate must be a positive number between 1 and 24.)
 # INPUT_TYPE_LIST: List of types of input materials or WIPs
 # QNTY_FOR_INPUT_ITEM: Quantity of input materials or WIPs [units]
 # OUTPUT: Output WIP or Product
 # PROCESS_COST: Processing cost of the process [$/unit]
 # PROCESS_STOP_COST: Penalty cost for stopping the process [$/unit]
 
-
+# Scenario 1
+'''
 # Scenario 1
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
          "CUST_ORDER_CYCLE": 7,
@@ -52,6 +53,78 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
 
 P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1]], "QNTY_FOR_INPUT_ITEM": [
     1], "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
+'''
+# Scenario 2
+
+I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
+         "CUST_ORDER_CYCLE": 7,
+         "INIT_LEVEL": 0,
+         "DEMAND_QUANTITY": 0,
+         "HOLD_COST": 1,
+         "SETUP_COST_PRO": 1,
+         "DELIVERY_COST": 1,
+         "DUE_DATE": 7,
+         "SHORTAGE_COST_PRO": 50},
+    
+    1: {"ID": 1, "TYPE": "Material", "NAME": "MAT 1",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+    
+    2: {"ID": 2, "TYPE": "Material", "NAME": "MAT 2",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+    
+    3: {"ID": 3, "TYPE": "Material", "NAME": "MAT 3",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 4,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+
+    4: {"ID": 4, "TYPE": "Material", "NAME": "MAT 4",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+
+    5: {"ID": 5, "TYPE": "Material", "NAME": "MAT 5",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+    
+    6: {"ID": 6, "TYPE": "WIP", "NAME": "WIP 1",
+         "INIT_LEVEL": 1,
+         "HOLD_COST": 1},
+
+    7: {"ID": 7, "TYPE": "WIP", "NAME": "WIP 2",
+         "INIT_LEVEL": 1,
+         "HOLD_COST": 1}}
+
+P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2], I[3]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1], 
+         "OUTPUT": I[6], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}, 
+    1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[3], I[6]], "QNTY_FOR_INPUT_ITEM": [1, 1], 
+        "OUTPUT": I[7], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2},
+    2: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[4], I[5], I[7]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1], 
+        "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2} }
 
 
 def DEFINE_FOLDER(folder_name):
@@ -77,14 +150,11 @@ def save_path(path):
 
 # Validation
 # 시뮬레이션 Validaition을 위한 코드 차후 지울것
-VALIDATION = False
+VALIDATION = True
 
 
 def validation_input(day):
-    if day % 2 == 1:
-        action = [1]
-    else:
-        action = [3]
+    action=[2, 2, 4, 2, 2]
     return action
 
 
@@ -102,7 +172,7 @@ INVEN_LEVEL_MAX = 20  # Capacity limit of the inventory [units]
 # DEMAND_QTY_MAX = 16
 
 # Simulation
-SIM_TIME = 100  # 200 [days] per episode
+SIM_TIME = 7  # 200 [days] per episode
 
 
 # Distribution types

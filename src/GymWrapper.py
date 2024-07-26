@@ -83,7 +83,7 @@ class GymInterface(gym.Env):
                     len(I)*(1+DAILY_CHANGE)+MAT_COUNT*INTRANSIT+1)]
             else:
                 os = [
-                    INVEN_LEVEL_MAX*3 for _ in range(len(I)*(1+DAILY_CHANGE)+MAT_COUNT*INTRANSIT+1)]
+                    INVEN_LEVEL_MAX * 2 + 1   for _ in range(len(I)*(1+DAILY_CHANGE)+MAT_COUNT*INTRANSIT+1)]
             '''
             - Inventory Level of Product
             - Daily Change of Product

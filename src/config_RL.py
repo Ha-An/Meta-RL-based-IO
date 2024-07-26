@@ -72,7 +72,7 @@ N_EVAL_EPISODES = 10  # 100
 # Export files
 DAILY_REPORT_EXPORT = False
 STATE_TRAIN_EXPORT = False
-STATE_TEST_EXPORT = False
+STATE_TEST_EXPORT = True
 
 # Define parent dir's path
 current_dir = os.path.dirname(__file__)

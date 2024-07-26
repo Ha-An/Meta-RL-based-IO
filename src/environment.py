@@ -208,11 +208,11 @@ class Production:
             if shortage_check:
                 daily_events.append(
                     f"{present_daytime(self.env.now)}: Stop {self.name} due to a shortage of input materials or WIPs")
-                yield self.env.timeout(24 - (self.env.now % 24))
+                yield self.env.timeout(1) # Check shortage every hour
             elif inven_upper_limit_check:
                 daily_events.append(
                     f"{present_daytime(self.env.now)}: Stop {self.name} due to the upper limit of the inventory. The output inventory is full")
-                yield self.env.timeout(24 - (self.env.now % 24))
+                yield self.env.timeout(1) # Check upper limit every hour
             else:
                 daily_events.append(
                     f"{present_daytime(self.env.now)}: Process {self.process_id} begins")
