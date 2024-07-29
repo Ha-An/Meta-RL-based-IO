@@ -292,7 +292,10 @@ def evaluate_model(model, env, num_episodes):
     STATE_ACTION_REPORT_REAL.clear()
     ORDER_HISTORY = []
     # For validation and visualization
-    order_qty = []
+    # Make dict for order_qty
+    order_qty = {}
+    for mat in range(MAT_COUNT):
+        order_qty[f"mat {mat}"]=[]
     demand_qty = []
     onhand_inventory = []
     test_order_mean = []  # List to store average orders per episode
@@ -319,7 +322,9 @@ def evaluate_model(model, env, num_episodes):
             episode_reward += reward  # Accumulate rewards
             ORDER_HISTORY.append(action[0])  # Log order history
             # ORDER_HISTORY.append(I[1]["LOT_SIZE_ORDER"])  # Log order history
-            order_qty.append(action[-1])
+            # Save action for each materials
+            for x in range(len(action)):
+                order_qty[f"mat {x}"].append(action[x])
             # order_qty.append(I[1]["LOT_SIZE_ORDER"])
             demand_qty.append(I[0]["DEMAND_QUANTITY"])
             day += 1  # 추후 validation 끝나면 지울 것
@@ -399,14 +404,20 @@ def Visualize_invens(inventory, demand_qty, order_qty, all_rewards):
         plt.show()
 
     if VIZ_INVEN_LINE:
+        plt.figure(figsize=(30, 10))
         for id in I.keys():
             # Visualize the inventory levels of the best episode
             plt.plot(inventory[best_index][id], label=lable[id])
         plt.plot(demand_qty[-SIM_TIME:], "y--", label="Demand_QTY")
-        plt.plot(order_qty[-SIM_TIME:], "r--", label="ORDER")
         plt.legend()
         plt.show()
-
+    
+    if VIZ_MAT_ORDER:
+        plt.figure(figsize=(20 , 10))
+        for key in order_qty.keys():
+            plt.plot(order_qty[key][-SIM_TIME:] ,label=f"{key}")
+        plt.legend()
+        plt.show()
 
 def export_state(Record_Type):
     state_corr = pd.DataFrame(STATE_ACTION_REPORT_CORRECTION)

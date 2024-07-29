@@ -64,7 +64,7 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
          "SETUP_COST_PRO": 1,
          "DELIVERY_COST": 1,
          "DUE_DATE": 7,
-         "SHORTAGE_COST_PRO": 50},
+         "SHORTAGE_COST_PRO": 100},
     
     1: {"ID": 1, "TYPE": "Material", "NAME": "MAT 1",
          "MANU_ORDER_CYCLE": 1,
@@ -77,7 +77,7 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
     
     2: {"ID": 2, "TYPE": "Material", "NAME": "MAT 2",
          "MANU_ORDER_CYCLE": 1,
-         "INIT_LEVEL": 2,
+         "INIT_LEVEL": 4,
          "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
          "HOLD_COST": 1,
          "PURCHASE_COST": 2,
@@ -86,7 +86,7 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
     
     3: {"ID": 3, "TYPE": "Material", "NAME": "MAT 3",
          "MANU_ORDER_CYCLE": 1,
-         "INIT_LEVEL": 4,
+         "INIT_LEVEL": 2,
          "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
          "HOLD_COST": 1,
          "PURCHASE_COST": 2,
@@ -119,13 +119,12 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
          "INIT_LEVEL": 1,
          "HOLD_COST": 1}}
 
-P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2], I[3]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1], 
+P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_FOR_INPUT_ITEM": [1, 1], 
          "OUTPUT": I[6], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}, 
-    1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[3], I[6]], "QNTY_FOR_INPUT_ITEM": [1, 1], 
+    1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[2], I[3], I[6]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1], 
         "OUTPUT": I[7], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2},
-    2: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[4], I[5], I[7]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1], 
+    2: {"ID": 2, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[4], I[5], I[7]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1], 
         "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2} }
-
 
 def DEFINE_FOLDER(folder_name):
     if os.path.exists(folder_name):
@@ -150,11 +149,11 @@ def save_path(path):
 
 # Validation
 # 시뮬레이션 Validaition을 위한 코드 차후 지울것
-VALIDATION = True
+VALIDATION = False
 
 
 def validation_input(day):
-    action=[2, 2, 4, 2, 2]
+    action=[2, 4, 2, 2, 2]
     return action
 
 
@@ -172,7 +171,7 @@ INVEN_LEVEL_MAX = 20  # Capacity limit of the inventory [units]
 # DEMAND_QTY_MAX = 16
 
 # Simulation
-SIM_TIME = 7  # 200 [days] per episode
+SIM_TIME = 200  # 200 [days] per episode
 
 
 # Distribution types
@@ -211,7 +210,7 @@ ORDER_QTY = 1
 REORDER_LEVEL = 0
 
 # Print logs
-PRINT_SIM = True
+PRINT_SIM = False
 # PRINT_LOG_TIMESTEP = True
 # PRINT_LOG_DAILY_REPORT = True
 
@@ -219,5 +218,5 @@ PRINT_SIM = True
 # If False, the total cost is calculated based on the inventory level for every 24 hours.
 # Otherwise, the total cost is accumulated every hour.
 HOURLY_COST_MODEL = True
-VISUALIAZTION = [1, 0, 1]  # PRINT RAW_MATERIAL, WIP, PRODUCT
+VISUALIAZTION = [1, 1, 1]  # PRINT RAW_MATERIAL, WIP, PRODUCT
 TIME_CORRECTION = 0.0001

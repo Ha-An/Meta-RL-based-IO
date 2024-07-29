@@ -185,15 +185,13 @@ class Production:
         self.output_inventory = output_inventory
         self.processing_time = 24 / self.production_rate
         self.unit_processing_cost = processing_cost
-
+        self.print_stop=True
+        self.print_limit=True
     def process_items(self, daily_events):
         """
         Simulate the production process.
         """
         while True:
-            daily_events.append(
-                "===============Process Phase===============")
-
             # Check if there's a shortage of input materials or WIPs
             shortage_check = False
             for inven, input_qnty in zip(self.input_inventories, self.qnty_for_input_item):
@@ -206,14 +204,25 @@ class Production:
                 inven_upper_limit_check = True
 
             if shortage_check:
-                daily_events.append(
+                if self.print_stop:
+                    daily_events.append(
+                "===============Process Phase===============")
+
+                    daily_events.append(
                     f"{present_daytime(self.env.now)}: Stop {self.name} due to a shortage of input materials or WIPs")
+                self.print_stop = False
                 yield self.env.timeout(1) # Check shortage every hour
             elif inven_upper_limit_check:
-                daily_events.append(
+                if self.print_limit:
+                    daily_events.append(
+                "===============Process Phase===============")
+                    daily_events.append(
                     f"{present_daytime(self.env.now)}: Stop {self.name} due to the upper limit of the inventory. The output inventory is full")
+                self.print_limit = False
                 yield self.env.timeout(1) # Check upper limit every hour
             else:
+                daily_events.append(
+                "===============Process Phase===============")
                 daily_events.append(
                     f"{present_daytime(self.env.now)}: Process {self.process_id} begins")
 
@@ -238,7 +247,8 @@ class Production:
                 self.output_inventory.holding_cost_last_updated += TIME_CORRECTION
                 daily_events.append(
                     f"{self.env.now+TIME_CORRECTION}: {self.output['NAME']} has been produced                         : 1 units")
-
+                self.print_limit = True
+                self.print_limit = True
                 yield self.env.timeout(TIME_CORRECTION)  # Time correction
 
 
