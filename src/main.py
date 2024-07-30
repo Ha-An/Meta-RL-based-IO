@@ -28,7 +28,7 @@ def build_model():
         # [Train 5] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME, learning_rate=0.0001, batch_size=20) => 39 mins
         # [Train 6] # => 40 mins
         model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME *
-                    4, learning_rate=0.0001, batch_size=20)
+                    4, learning_rate=0.00003, batch_size=20)
         # [Train 7] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME*2, learning_rate = 0.0001, batch_size = 20) => 36 mins
         # [Train 8] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME*10, learning_rate = 0.0001, batch_size = 20) => 40 mins
 
@@ -100,7 +100,7 @@ else:
     print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n",
           f"Training time: {(training_end_time - start_time)/60:.2f} minutes \n ",
           f"Test time:{(end_time - training_end_time)/60:.2f} minutes")
-
+    print(model.rollout_buffer.values[0])
 
 # Optionally render the environment
 env.render()

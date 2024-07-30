@@ -31,7 +31,7 @@ import numpy as np
 # PROCESS_STOP_COST: Penalty cost for stopping the process [$/unit]
 
 # Scenario 1
-'''
+
 # Scenario 1
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
          "CUST_ORDER_CYCLE": 7,
@@ -125,7 +125,7 @@ P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_F
         "OUTPUT": I[7], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2},
     2: {"ID": 2, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[4], I[5], I[7]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1], 
         "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2} }
-
+'''
 def DEFINE_FOLDER(folder_name):
     if os.path.exists(folder_name):
         file_list = os.listdir(folder_name)
@@ -171,7 +171,7 @@ INVEN_LEVEL_MAX = 20  # Capacity limit of the inventory [units]
 # DEMAND_QTY_MAX = 16
 
 # Simulation
-SIM_TIME = 200  # 200 [days] per episode
+SIM_TIME = 100  # 200 [days] per episode
 
 
 # Distribution types

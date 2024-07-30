@@ -20,7 +20,7 @@ for i in range(len(I)):
 # Remaining demand: Demand quantity - Current product level
 STATE_RANGES.append((0, max(DEMAND_QTY_MAX, INVEN_LEVEL_MAX)))
 '''
-DRL_TENSORBOARD = True
+DRL_TENSORBOARD = False
 
 
 def Create_scenario(dist_type):
@@ -39,7 +39,7 @@ def Create_scenario(dist_type):
 
 
 # Episode
-N_EPISODES = 10000  # 3000
+N_EPISODES = 100  # 3000
 
 
 def DEFINE_FOLDER(folder_name):
@@ -67,7 +67,7 @@ N_TRIALS = 15  # 50
 USE_CORRECTION = True
 
 # Evaluation
-N_EVAL_EPISODES = 10  # 100
+N_EVAL_EPISODES = 5 # 100
 
 # Export files
 DAILY_REPORT_EXPORT = False
@@ -110,14 +110,14 @@ else:
     os.makedirs(GRAPH_FOLDER)
 '''
 # Visualize_Graph
-VIZ_INVEN_LINE = True
-VIZ_INVEN_PIE = True
-VIZ_COST_PIE = True
-VIZ_COST_BOX = True
-VIZ_MAT_ORDER = True
+VIZ_INVEN_LINE = False
+VIZ_INVEN_PIE = False
+VIZ_COST_PIE = False
+VIZ_COST_BOX = False
+VIZ_MAT_ORDER = False
 # Saved Model
 SAVED_MODEL_PATH = os.path.join(parent_dir, "Saved_Model")
-SAVE_MODEL = True
+SAVE_MODEL = False
 SAVED_MODEL_NAME = "BASE_Cor"
 
 # Load Model
