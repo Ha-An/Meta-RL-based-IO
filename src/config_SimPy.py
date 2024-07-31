@@ -23,7 +23,7 @@ import numpy as np
 
 #### Processes #####################################################################
 # ID: Index of the element in the dictionary
-# PRODUCTION_RATE [units/day]
+# PRODUCTION_RATE [units/day] (Production rate must be a positive number between 1 and 24.)
 # INPUT_TYPE_LIST: List of types of input materials or WIPs
 # QNTY_FOR_INPUT_ITEM: Quantity of input materials or WIPs [units]
 # OUTPUT: Output WIP or Product
@@ -31,7 +31,7 @@ import numpy as np
 # PROCESS_STOP_COST: Penalty cost for stopping the process [$/unit]
 
 
-# Scenario 1
+# Assembly Process 1
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
          "CUST_ORDER_CYCLE": 7,
          "INIT_LEVEL": 0,
@@ -49,9 +49,77 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
          "PURCHASE_COST": 2,
          "ORDER_COST_TO_SUP": 1,
          "LOT_SIZE_ORDER": 0}}
-
 P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1]], "QNTY_FOR_INPUT_ITEM": [
     1], "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
+'''
+# Assembly Process 3
+I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
+         "CUST_ORDER_CYCLE": 7,
+         "INIT_LEVEL": 0,
+         "DEMAND_QUANTITY": 0,
+         "HOLD_COST": 1,
+         "SETUP_COST_PRO": 1,
+         "DELIVERY_COST": 1,
+         "DUE_DATE": 7,
+         "SHORTAGE_COST_PRO": 50},
+     1: {"ID": 1, "TYPE": "Material", "NAME": "MAT 1",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+     2: {"ID": 2, "TYPE": "Material", "NAME": "MAT 2",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+     3: {"ID": 3, "TYPE": "Material", "NAME": "MAT 3",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+     4: {"ID": 4, "TYPE": "Material", "NAME": "MAT 4",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+     5: {"ID": 5, "TYPE": "Material", "NAME": "MAT 5",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+     6: {"ID": 6, "TYPE": "WIP", "NAME": "WIP 1",
+         "INIT_LEVEL": 1,
+         "HOLD_COST": 1},
+     7: {"ID": 7, "TYPE": "WIP", "NAME": "WIP 2",
+         "INIT_LEVEL": 1,
+         "HOLD_COST": 1}}
+
+P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_FOR_INPUT_ITEM": [1, 1],
+         "OUTPUT": I[6], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2},
+     1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[2], I[3], I[6]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1],
+         "OUTPUT": I[7], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2},
+     2: {"ID": 2, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[4], I[5], I[7]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1],
+         "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
+'''
+
+# Options for RL states
+DAILY_CHANGE = 0  # 0: False / 1: True
+INTRANSIT = 1  # 0: False / 1: True
 
 
 def DEFINE_FOLDER(folder_name):
@@ -74,6 +142,23 @@ def save_path(path):
     os.makedirs(path)
     return path
 
+# Create demand
+
+
+def DEMAND_QTY_FUNC(scenario):
+    # Uniform distribution
+    if scenario["Dist_Type"] == "UNIFORM":
+        return random.randint(scenario['min'], scenario["max"])
+    # Gaussian distribution
+    elif scenario["Dist_Type"] == "GAUSSIAN":
+        # Gaussian distribution
+        return np.random.normal(scenario['mean'], scenario['std'])
+
+
+def SUP_LEAD_TIME_FUNC():
+    # SUP_LEAD_TIME must be an integer and less than CUST_ORDER_CYCLE(7)
+    return random.randint(1, 3)  # Default: random.randint(1, 3)
+
 
 # Validation
 # 시뮬레이션 Validaition을 위한 코드 차후 지울것
@@ -81,10 +166,7 @@ VALIDATION = False
 
 
 def validation_input(day):
-    if day % 2 == 1:
-        action = [1]
-    else:
-        action = [3]
+    action = [2, 2, 4, 2, 2]
     return action
 
 
@@ -102,15 +184,11 @@ INVEN_LEVEL_MAX = 20  # Capacity limit of the inventory [units]
 # DEMAND_QTY_MAX = 16
 
 # Simulation
-SIM_TIME = 100  # 200 [days] per episode
+SIM_TIME = 200  # Default: 200 [days] per episode
 
 
 # Distribution types
 DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
-
-# Options for RL states
-DAILY_CHANGE = 1  # 0: False / 1: True
-INTRANSIT = 1  # 0: False / 1: True
 
 # Count for intransit inventory
 MAT_COUNT = 0
@@ -118,30 +196,12 @@ for id in I.keys():
     if I[id]["TYPE"] == "Material":
         MAT_COUNT += 1
 
-# Create demand
-
-
-def DEMAND_QTY_FUNC(scenario):
-    # Uniform distribution
-    if scenario["Dist_Type"] == "UNIFORM":
-        return random.randint(scenario['min'], scenario["max"])
-    # Gaussian distribution
-    elif scenario["Dist_Type"] == "GAUSSIAN":
-        # Gaussian distribution
-        return np.random.normal(scenario['mean'], scenario['std'])
-
-
-def SUP_LEAD_TIME_FUNC():
-    # SUP_LEAD_TIME must be an integer and less than CUST_ORDER_CYCLE(7)
-    return random.randint(1, 1)
-
-
 # Ordering rules
 ORDER_QTY = 1
 REORDER_LEVEL = 0
 
 # Print logs
-PRINT_SIM = True
+PRINT_SIM = False
 # PRINT_LOG_TIMESTEP = True
 # PRINT_LOG_DAILY_REPORT = True
 

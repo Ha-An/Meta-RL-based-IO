@@ -32,8 +32,8 @@ def build_model():
         # [Train 7] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME*2, learning_rate = 0.0001, batch_size = 20) => 36 mins
         # [Train 8] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME*10, learning_rate = 0.0001, batch_size = 20) => 40 mins
 
-        # model = PPO("MlpPolicy", env, learning_rate=BEST_PARAMS['learning_rate'], gamma=BEST_PARAMS['gamma'],
-        #             batch_size=BEST_PARAMS['batch_size'], n_steps=SIM_TIME, verbose=0)
+        # model = PPO("MlpPolicy", env, learning_rate=BEST_PARAMS['LEARNING_RATE'], gamma=BEST_PARAMS['GAMMA'],
+        #             batch_size=BEST_PARAMS['BATCH_SIZE'], n_steps=BEST_PARAMS['N_STEPS'], verbose=0)
         print(env.observation_space)
     return model
 
@@ -82,7 +82,7 @@ else:
         print("Initial_Obs: ", env.reset())
         model = build_model()
         # Train the model
-        model.learn(total_timesteps=SIM_TIME * N_EPISODES,)
+        model.learn(total_timesteps=SIM_TIME * N_EPISODES)
         if SAVE_MODEL:
             model.save(os.path.join(SAVED_MODEL_PATH, SAVED_MODEL_NAME))
             print(f"{SAVED_MODEL_NAME} is saved successfully")

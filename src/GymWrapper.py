@@ -20,9 +20,9 @@ class GymInterface(gym.Env):
         self.scenario = {"Dist_Type": "UNIFORM",
                          "min": 8, "max": 15}  # Default scenario
         # self.scenario = {"Dist_Type": "UNIFORM",
-        #                  "min": 5, "max": 11}
+        #                  "min": 5, "max": 12}
         # self.scenario = {"Dist_Type": "UNIFORM",
-        #                  "min": 15, "max": 19}
+        #                  "min": 11, "max": 18}
         self.shortages = 0
         self.total_reward_over_episode = []
         self.total_reward = 0
@@ -83,7 +83,7 @@ class GymInterface(gym.Env):
                     len(I)*(1+DAILY_CHANGE)+MAT_COUNT*INTRANSIT+1)]
             else:
                 os = [
-                    INVEN_LEVEL_MAX*3 for _ in range(len(I)*(1+DAILY_CHANGE)+MAT_COUNT*INTRANSIT+1)]
+                    INVEN_LEVEL_MAX * 2 + 1 for _ in range(len(I)*(1+DAILY_CHANGE)+MAT_COUNT*INTRANSIT+1)]
             '''
             - Inventory Level of Product
             - Daily Change of Product
@@ -123,22 +123,15 @@ class GymInterface(gym.Env):
     def step(self, action):
 
         # Update the action of the agent
-        if RL_ALGORITHM == "DQN":
-            I[1]["LOT_SIZE_ORDER"] = action
-
-        elif RL_ALGORITHM == "DDPG":
-            i = 0
-            for _ in range(len(I)):
-                if I[_]["TYPE"] == "Material":
-                    I[_]["LOT_SIZE_ORDER"] = action[i]
-                    i += 1
-        elif RL_ALGORITHM == "PPO":
+        if RL_ALGORITHM == "PPO":
             i = 0
             for _ in range(len(I)):
                 if I[_]["TYPE"] == "Material":
                     I[_]["LOT_SIZE_ORDER"] = action[i]
                     # I[_]["LOT_SIZE_ORDER"] = ORDER_QTY
                     i += 1
+        elif RL_ALGORITHM == "DQN":
+            pass
 
         # Capture the current state of the environment
         # current_state = env.cap_current_state(self.inventoryList)
@@ -176,9 +169,7 @@ class GymInterface(gym.Env):
         if PRINT_SIM:
             # Print the simulation log every 24 hours (1 day)
             print(f"\nDay {(self.simpy_env.now+1) // 24}:")
-            if RL_ALGORITHM == "DQN":
-                print(f"[Order Quantity for {I[1]['NAME']}] ", action)
-            else:
+            if RL_ALGORITHM == "PPO":
                 i = 0
                 for _ in range(len(I)):
                     if I[_]["TYPE"] == "Raw Material":
