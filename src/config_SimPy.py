@@ -219,7 +219,7 @@ for id in I.keys():
         MAT_COUNT += 1
 
 # Ordering rules
-ORDER_QTY = [2]
+ORDER_QTY = [2] # If not used, the list should be left empty.
 REORDER_LEVEL = 0
 
 # Print logs
