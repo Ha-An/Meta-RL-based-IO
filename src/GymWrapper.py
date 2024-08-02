@@ -17,8 +17,12 @@ class GymInterface(gym.Env):
         if DRL_TENSORBOARD:
             self.writer = SummaryWriter(log_dir=TENSORFLOW_LOGS)
         super(GymInterface, self).__init__()
-        self.scenario = {"Dist_Type": "UNIFORM",
-                         "min": 8, "max": 15}  # Default scenario
+        if DEMAND_DIST_TYPE == "UNIFORM":
+            self.scenario = {"Dist_Type": "UNIFORM",
+                             "min": 8, "max": 15}  # Default scenario
+        elif DEMAND_DIST_TYPE == "GAUSSIAN":
+            self.scenario = {"Dist_Type": "GAUSSIAN",
+                             "mu": 11, "sigma": 1}
         # self.scenario = {"Dist_Type": "UNIFORM",
         #                  "min": 5, "max": 12}
         # self.scenario = {"Dist_Type": "UNIFORM",
@@ -127,8 +131,10 @@ class GymInterface(gym.Env):
             i = 0
             for _ in range(len(I)):
                 if I[_]["TYPE"] == "Material":
+                    # Set action as predicted value
                     I[_]["LOT_SIZE_ORDER"] = action[i]
-                    # I[_]["LOT_SIZE_ORDER"] = ORDER_QTY
+                    # Set action to fixed value
+                    # I[_]["LOT_SIZE_ORDER"] = ORDER_QTY[i]
                     i += 1
         elif RL_ALGORITHM == "DQN":
             pass
@@ -230,7 +236,7 @@ class GymInterface(gym.Env):
                 if I[id]["TYPE"] == "Material":
                     # append Intransition inventory
                     state.append(
-                        STATE_DICT[-1][f"In_Transit_{I[id]['NAME']}"]+INVEN_LEVEL_MAX)
+                        STATE_DICT[-1][f"In_Transit_{I[id]['NAME']}"])
 
         # Append remaining demand
         state.append(I[0]["DEMAND_QUANTITY"] -
@@ -259,7 +265,7 @@ class GymInterface(gym.Env):
             if I[id]['TYPE'] == "Material":
                 if INTRANSIT == 1:
                     state_corrected.append(round(
-                        (STATE_DICT[-1][f"In_Transit_{I[id]['NAME']}"]-ACTION_SPACE[0])/(ACTION_SPACE[-1]-ACTION_SPACE[0])))
+                        (STATE_DICT[-1][f"In_Transit_{I[id]['NAME']}"]-ACTION_SPACE[0])/(ACTION_SPACE[-1]*7-ACTION_SPACE[0])))
 
         # normalization remaining demand
         state_corrected.append(round(
@@ -283,7 +289,9 @@ def evaluate_model(model, env, num_episodes):
     STATE_ACTION_REPORT_REAL.clear()
     ORDER_HISTORY = []
     # For validation and visualization
-    order_qty = []
+    Mat_Order = {}
+    for mat in range(MAT_COUNT):
+        Mat_Order[f"mat {mat}"] = []
     demand_qty = []
     onhand_inventory = []
     test_order_mean = []  # List to store average orders per episode
@@ -309,9 +317,9 @@ def evaluate_model(model, env, num_episodes):
             obs, reward, done, _ = env.step(action)
             episode_reward += reward  # Accumulate rewards
             ORDER_HISTORY.append(action[0])  # Log order history
-            # ORDER_HISTORY.append(I[1]["LOT_SIZE_ORDER"])  # Log order history
-            order_qty.append(action[-1])
-            # order_qty.append(I[1]["LOT_SIZE_ORDER"])
+            for x in range(len(action)):
+                Mat_Order[f"mat {x}"].append(action[x])
+            # Mat_Order.append(I[1]["LOT_SIZE_ORDER"])
             demand_qty.append(I[0]["DEMAND_QUANTITY"])
             day += 1  # 추후 validation 끝나면 지울 것
 
@@ -320,11 +328,14 @@ def evaluate_model(model, env, num_episodes):
         # Function to visualize the environment
 
         # Calculate mean order for the episode
-        test_order_mean.append(sum(ORDER_HISTORY) / len(ORDER_HISTORY))
+        order_mean = []
+        for key in Mat_Order.keys():
+            order_mean.append(sum(Mat_Order[key]) / len(Mat_Order[key]))
+        test_order_mean.append(order_mean)
         COST_HISTORY.append(env.cost_dict)
     if VISUALIAZTION.count(1) > 0:
         visualization.visualization(DAILY_REPORTS)
-    Visualize_invens(onhand_inventory, demand_qty, order_qty, all_rewards)
+    Visualize_invens(onhand_inventory, demand_qty, Mat_Order, all_rewards)
     cal_cost_avg()
     # print("Order_Average:", test_order_mean)
     if STATE_TEST_EXPORT:
@@ -356,7 +367,7 @@ def cal_cost_avg():
         cost_avg[key] = cost_avg[key]/N_EVAL_EPISODES
     # Visualize
     if VIZ_COST_PIE:
-        fig, ax = plt.subplots()
+        plt.figure(figsize=(20, 20))
         plt.pie(cost_avg.values(), explode=[
                 0.2, 0.2, 0.2, 0.2, 0.2], labels=cost_avg.keys(), autopct='%1.1f%%')
         plt.show()
@@ -365,7 +376,7 @@ def cal_cost_avg():
         plt.show()
 
 
-def Visualize_invens(inventory, demand_qty, order_qty, all_rewards):
+def Visualize_invens(inventory, demand_qty, Mat_Order, all_rewards):
     best_reward = -99999999999999
     best_index = 0
     for x in range(N_EVAL_EPISODES):
@@ -379,6 +390,7 @@ def Visualize_invens(inventory, demand_qty, order_qty, all_rewards):
         lable.append(I[id]["NAME"])
 
     if VIZ_INVEN_PIE:
+        plt.figure(figsize=(20, 20))
         for x in range(N_EVAL_EPISODES):
             for y in range(len(I)):
                 for z in range(SIM_TIME):
@@ -390,11 +402,15 @@ def Visualize_invens(inventory, demand_qty, order_qty, all_rewards):
         plt.show()
 
     if VIZ_INVEN_LINE:
+        plt.figure(figsize=(20, 20))
+        # Inven Line
         for id in I.keys():
             # Visualize the inventory levels of the best episode
             plt.plot(inventory[best_index][id], label=lable[id])
         plt.plot(demand_qty[-SIM_TIME:], "y--", label="Demand_QTY")
-        plt.plot(order_qty[-SIM_TIME:], "r--", label="ORDER")
+        # Order_Line
+        for key in Mat_Order.keys():
+            plt.plot(Mat_Order[key][-SIM_TIME:], label=f"ORDER {key}")
         plt.legend()
         plt.show()
 

@@ -37,11 +37,16 @@ BATCH_SIZE = 20  # Batch size for PPO (default is 64)
 N_STEPS = SIM_TIME * 4  # Number of steps per environment (default is 2048)
 
 # Meta-learning configuration
-train_num_scenarios = 20  # Number of scenarios for training
-test_num_scenarios = 5  # Number of scenarios for testing
-scenario_batch_size = 2  # Number of scenarios in each batch
-num_inner_updates = N_EPISODES  # Number of updates in the inner loop
-num_outer_updates = 1000  # Number of meta-learning iterations
+# train_num_scenarios = 20  # Number of scenarios for training
+# test_num_scenarios = 5  # Number of scenarios for testing
+# scenario_batch_size = 2  # Number of scenarios in each batch
+# num_inner_updates = N_EPISODES  # Number of updates in the inner loop
+# num_outer_updates = 2  # Number of meta-learning iterations
+train_scenario_batch_size = 10  # Batch size for random chosen scenarios
+test_scenario_batch_size = 5  # Batch size for random chosen scenarios
+num_inner_updates = N_EPISODES  # Number of gradient steps for adaptation
+num_outer_updates = 700  # Number of outer loop updates -> meta-training iterations
+
 
 # Define the meta model architecture
 
@@ -56,7 +61,8 @@ class Meta_Model(nn.Module):
         # Output layer for two values (alpha, beta)
         self.fc3 = nn.Linear(32, 2)
         # Optimizer
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
+        # self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
+        self.meta_optimizer = torch.optim.Adam(self.parameters(), lr=lr)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -65,8 +71,9 @@ class Meta_Model(nn.Module):
         output = torch.sigmoid(self.fc3(x))
         return output
 
-    def update_model(self, Loop_loss):
+    def update_model(self, query_losses):
         # Update the meta model based on the accumulated loss
+        '''
         loss_len = len(Loop_loss)
         tensor_loss = torch.tensor(
             Loop_loss, dtype=torch.float64, requires_grad=True).cuda()
@@ -76,6 +83,13 @@ class Meta_Model(nn.Module):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        '''
+        # query_losses: 각 태스크의 쿼리 세트에 대한 손실 리스트
+        meta_loss = sum(query_losses)
+        self.meta_optimizer.zero_grad()
+        meta_loss.backward()
+        self.meta_optimizer.step()
+
 
 # Define the base model for reinforcement learning
 
@@ -88,7 +102,7 @@ class Base_Model:
             self.policy, self.env, verbose=0, n_steps=N_STEPS, batch_size=BATCH_SIZE)
         self.Loop_Loss = []
         self.writer = SummaryWriter(
-            log_dir='./META_tensorboard_logs')  # TensorBoard writer
+            log_dir='./ALFA_tensorboard_logs')  # TensorBoard writer
 
     def cal_loss(self):
         # Calculate the loss for the PPO model
@@ -217,29 +231,11 @@ class Base_Model:
         self.writer.add_scalar("Total_Loss", sum(self.Loop_Loss), iteration)
 
 
-# Define the distribution of scenarios
-scenario_distribution = [
-    {"Dist_Type": "UNIFORM", "min": 8, "max": 10},
-    {"Dist_Type": "UNIFORM", "min": 9, "max": 11},
-    {"Dist_Type": "UNIFORM", "min": 10, "max": 12},
-    {"Dist_Type": "UNIFORM", "min": 11, "max": 13},
-    {"Dist_Type": "UNIFORM", "min": 12, "max": 14},
-    {"Dist_Type": "UNIFORM", "min": 13, "max": 15},
-    {"Dist_Type": "UNIFORM", "min": 8, "max": 11},
-    {"Dist_Type": "UNIFORM", "min": 9, "max": 12},
-    {"Dist_Type": "UNIFORM", "min": 10, "max": 13},
-    {"Dist_Type": "UNIFORM", "min": 11, "max": 14},
-    {"Dist_Type": "UNIFORM", "min": 12, "max": 15}
-]
-
 # Main function to start the training process
 
 
 def main():
-    start_time = time.time()
-    train_scenario_distribution = [Create_scenario(
-        DIST_TYPE) for _ in range(train_num_scenarios)]
-    test_scenario = {"Dist_Type": "UNIFORM", "min": 9, "max": 14}
+
     env = GymInterface()
     base_model = Base_Model(env)
     base_model.inner_model.learn(SIM_TIME * 4)
@@ -253,25 +249,33 @@ def main():
     meta_model = Meta_Model(len(current_params_flat) * 2).cuda()
 
     for iteration in range(num_outer_updates):
-        if len(scenario_distribution) > scenario_batch_size:
-            scenario_batch = np.random.choice(
-                scenario_distribution, scenario_batch_size, replace=False)
-        else:
-            scenario_batch = train_scenario_distribution
-
-        total_reward = 0
+        # Sample a batch of scenarios
+        scenario_batch = [Create_scenario(DIST_TYPE)
+                          for _ in range(train_scenario_batch_size)]
+        query_losses = []
         for scenario in scenario_batch:
             print("\n\nTRAINING SCENARIO: ", scenario)
             print("\nOuter Loop: ", env.cur_outer_loop,
                   " / Inner Loop: ", env.cur_inner_loop)
+
+            # Reset the scenario for the environment
+            print("Scenario: ",  scenario)
+
             base_model.update_base(scenario, meta_model, num_inner_updates)
+
+            query_loss = base_model.cal_loss()  # 이 메서드를 수정하여 쿼리 세트에 대한 손실을 반환하도록 해야 함
+            query_losses.append(query_loss)
 
         base_model.log_to_tensorboard(iteration)
         meta_model.update_model(base_model.Loop_Loss)
-        base_model.Loop_Loss = []
-        torch.save({'model_state_dict': meta_model.state_dict(),
-                    'optimizer_state_dict': meta_model.optimizer.state_dict()},
-                   'model_checkpoint.pth')
+        # torch.save({'model_state_dict': meta_model.state_dict(),
+        #             'optimizer_state_dict': meta_model.optimizer.state_dict()},
+        #            'model_checkpoint.pth')
 
 
+start_time = time.time()
 main()
+# Calculate computation time and print it
+end_time = time.time()
+
+print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n")

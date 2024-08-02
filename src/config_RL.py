@@ -15,7 +15,10 @@ def Create_scenario(dist_type):
                     "min": param_min, "max": param_max}
     elif dist_type == "GAUSSIAN":
         # Gaussian distribution
-        pass
+        param_mean = random.randint(9, 13)
+        param_std = random.randint(0, 5)
+        scenario = {"Dist_Type": dist_type,
+                    "mean": param_mean, "std": param_std}
     return scenario
 
 
@@ -37,14 +40,15 @@ def save_path(path):
 
 
 # Episode
-N_EPISODES = 100  # 3000
+N_EPISODES = 5  # 3000
 
 # RL algorithms
 RL_ALGORITHM = "PPO"  # "DP", "DQN", "DDPG", "PPO", "SAC"
 # Assembly Process 3
-BEST_PARAMS = {'LEARNING_RATE': 0.0006695881981942652,
-               'GAMMA': 0.917834573740, 'BATCH_SIZE': 8, 'N_STEPS': 600}
+# BEST_PARAMS = {'LEARNING_RATE': 0.0006695881981942652,
+#                'GAMMA': 0.917834573740, 'BATCH_SIZE': 8, 'N_STEPS': 600}
 
+# Lead time의 최대 값은 Action Space의 최대 값과 곱하였을 때 INVEN_LEVEL_MAX의 2배를 넘지 못하게 설정 해야 함 (INTRANSIT이 OVER되는 현상을 방지 하기 위해서)
 ACTION_SPACE = [0, 1, 2, 3, 4, 5]
 
 '''
@@ -58,7 +62,7 @@ for i in range(len(I)):
 # Remaining demand: Demand quantity - Current product level
 STATE_RANGES.append((0, max(DEMAND_QTY_MAX, INVEN_LEVEL_MAX)))
 '''
-DRL_TENSORBOARD = True
+DRL_TENSORBOARD = False
 
 # Hyperparameter optimization
 OPTIMIZE_HYPERPARAMETERS = False
@@ -109,10 +113,10 @@ else:
     os.makedirs(GRAPH_FOLDER)
 '''
 # Visualize_Graph
-VIZ_INVEN_LINE = True
-VIZ_INVEN_PIE = True
-VIZ_COST_PIE = True
-VIZ_COST_BOX = True
+VIZ_INVEN_LINE = False
+VIZ_INVEN_PIE = False
+VIZ_COST_PIE = False
+VIZ_COST_BOX = False
 
 # Saved Model
 SAVED_MODEL_PATH = os.path.join(parent_dir, "Saved_Model")

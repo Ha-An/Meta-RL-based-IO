@@ -13,18 +13,17 @@ from gym import spaces
 
 from torch.utils.tensorboard import SummaryWriter
 
+
+K = N_EPISODES
 # Hyperparameters
 ALPHA = 0.0001  # Inner loop step size (사용되지 않는 값) ->  SB3 PPO 기본 값(0.0003)
 BATCH_SIZE = 20  # Default 64
-N_STEPS = SIM_TIME*4  # Default 2048
+N_STEPS = SIM_TIME*K  # Default 2048
 
 BETA = 0.0003  # Outer loop step size ## Default: 0.001
-# train_num_scenarios = 20  # Number of full scenarios for meta-training
-# test_num_scenarios = 5
 train_scenario_batch_size = 10  # Batch size for random chosen scenarios
 test_scenario_batch_size = 5  # Batch size for random chosen scenarios
-num_inner_updates = N_EPISODES  # Number of gradient steps for adaptation
-num_outer_updates = 700  # Number of outer loop updates -> meta-training iterations
+num_outer_updates = 600  # Number of outer loop updates -> meta-training iterations
 
 # Meta-learning algorithm
 
@@ -40,23 +39,26 @@ class MetaLearner:
         self.beta = beta
 
         self.meta_model = PPO(policy, self.env, verbose=0,
-                              n_steps=N_STEPS, learning_rate=self.beta, batch_size=BATCH_SIZE)
+                              n_steps=N_STEPS, learning_rate=self.beta, batch_size=BATCH_SIZE, n_epochs=1)
 
-        self.writer = SummaryWriter(log_dir='./META_tensorboard_logs')
+        self.writer = SummaryWriter(log_dir='./NEW_META_tensorboard_logs')
 
-    def inner_loop(self, num_updates=num_inner_updates):
+    def inner_loop(self, K=K):
         """
         Adapts the meta-policy to a specific task using gradient descent.
         """
         self.env.reset()
+        # n_steps: K개의 rollout을 가지고 policy를 업데이트
         adapted_model = PPO(self.policy, self.env, verbose=0,
-                            n_steps=N_STEPS, learning_rate=self.alpha, batch_size=BATCH_SIZE)
+                            n_steps=N_STEPS, learning_rate=self.alpha, batch_size=BATCH_SIZE, n_epochs=1)
 
         # 정책 네트워크의 파라미터 복사
         adapted_model.policy.load_state_dict(
             self.meta_model.policy.state_dict())
 
-        adapted_model.learn(total_timesteps=SIM_TIME*num_updates)
+        # LINE 5 - 7: 정책 네트워크의 파라미터의 파라미터 업데이트
+        # (SIM_TIME*K) timestep 길이의 rollout을 두 번 학습하고, 두 번째 학습에 사용된 rollout (D')을 buffer에 저장함
+        adapted_model.learn(total_timesteps=N_STEPS*2)
 
         return adapted_model
 
@@ -69,10 +71,10 @@ class MetaLearner:
         # Compute current clip range
         clip_range = self.meta_model.clip_range(
             self.meta_model._current_progress_remaining)  # type: ignore[operator]
-        # Optional: clip range for the value function
-        if self.meta_model.clip_range_vf is not None:
-            clip_range_vf = self.meta_model.clip_range_vf(
-                self.meta_model._current_progress_remaining)  # type: ignore[operator]
+        # # Optional: clip range for the value function
+        # if self.meta_model.clip_range_vf is not None:
+        #     clip_range_vf = self.meta_model.clip_range_vf(
+        #         self.meta_model._current_progress_remaining)  # type: ignore[operator]
 
         entropy_losses = []
         pg_losses, value_losses = [], []
@@ -115,15 +117,17 @@ class MetaLearner:
                 (torch.abs(ratio - 1) > clip_range).float()).item()
             clip_fractions.append(clip_fraction)
 
-            if self.meta_model.clip_range_vf is None:
-                # No clipping
-                values_pred = values
-            else:
-                # Clip torche difference between old and new value
-                # NOTE: torchis depends on torche reward scaling
-                values_pred = rollout_data.old_values + torch.clamp(
-                    values - rollout_data.old_values, -clip_range_vf, clip_range_vf
-                )
+            values_pred = values
+            # if self.meta_model.clip_range_vf is None:
+            #     # No clipping
+            #     values_pred = values
+            # else:
+            #     # Clip torche difference between old and new value
+            #     # NOTE: torchis depends on torche reward scaling
+            #     values_pred = rollout_data.old_values + torch.clamp(
+            #         values - rollout_data.old_values, -clip_range_vf, clip_range_vf
+            #     )
+
             # Value loss using torche TD(gae_lambda) target
             value_loss = F.mse_loss(rollout_data.returns, values_pred)
             value_losses.append(value_loss.item())
@@ -158,7 +162,7 @@ class MetaLearner:
         Performs the meta-test step by averaging gradients across scenarios.
         """
         # eval_scenario = Create_scenario(DIST_TYPE)
-        test_scenario_batch = [Create_scenario(DIST_TYPE)
+        test_scenario_batch = [Create_scenario(DEMAND_DIST_TYPE)
                                for _ in range(test_scenario_batch_size)]
 
         # Set the scenario for the environment
@@ -198,14 +202,13 @@ meta_rewards = []
 random_rewards = []
 
 for iteration in range(num_outer_updates):
-    # Sample a batch of scenarios
-    scenario_batch = [Create_scenario(DIST_TYPE)
+    # LINE 3: Sample a batch of scenarios
+    scenario_batch = [Create_scenario(DEMAND_DIST_TYPE)
                       for _ in range(train_scenario_batch_size)]
 
     # Adapt the meta-policy to each scenario in the batch
-    scenario_models = []
     rollout_list = []
-    for scenario in scenario_batch:
+    for scenario in scenario_batch:  # LINE 4
         print("\n\nTRAINING SCENARIO: ", scenario)
         print("\nOuter Loop: ", env.cur_outer_loop,
               " / Inner Loop: ", env.cur_inner_loop)
@@ -213,19 +216,25 @@ for iteration in range(num_outer_updates):
         # Reset the scenario for the environment
         meta_learner.env.scenario = scenario
         print("Scenario: ", meta_learner.env.scenario)
-        # 특정 시나리오에 대한 학습 진행
-        adapted_model = meta_learner.inner_loop()
-        scenario_models.append(adapted_model)
+        # LINE 5 - 7
+        adapted_model = meta_learner.inner_loop()  # LINE 6-7
 
-        # 학습된 모델로부터 rollout 수집
+        # LINE 8: 학습된 모델로부터 rollout 수집
+        # rollout buffer에는 K개의 에피소드가 저장되어 있음
+        meta_learner.meta_model.rollout_buffer = adapted_model.rollout_buffer
+        meta_learner.custom_train()
+        # rollout_list.append(rollout_buffer)
+        '''
+        # LINE 8: 학습된 모델로부터 rollout 수집
         rollout_buffer = adapted_model.rollout_buffer
         rollout_list.append(rollout_buffer)
+        '''
 
         env.cur_episode = 1
         env.cur_inner_loop += 1
 
-    # Perform the meta-update step
-    meta_learner.meta_update(rollout_list)
+    # # LINE 10: Perform the meta-update step
+    # meta_learner.meta_update(rollout_list)
 
     # Evaluate the meta-policy on the test scenario
     meta_mean_reward, meta_std_reward = meta_learner.meta_test()
