@@ -14,8 +14,9 @@ from torch.utils.tensorboard import SummaryWriter
 
 class GymInterface(gym.Env):
     def __init__(self):
-        if DRL_TENSORBOARD:
-            self.writer = SummaryWriter(log_dir=TENSORFLOW_LOGS)
+        self.outer_end = False
+        self.writer = SummaryWriter(log_dir=TENSORFLOW_LOGS)
+        print(TENSORFLOW_LOGS)
         super(GymInterface, self).__init__()
         if DEMAND_DIST_TYPE == "UNIFORM":
             self.scenario = {"Dist_Type": "UNIFORM",
@@ -23,6 +24,13 @@ class GymInterface(gym.Env):
         elif DEMAND_DIST_TYPE == "GAUSSIAN":
             self.scenario = {"Dist_Type": "GAUSSIAN",
                              "mu": 11, "sigma": 1}
+        
+        if LEAD_DIST_TYPE == "UNIFORM":
+            self.lead_time = {"Dist_Type": "UNIFORM",
+                             "min": 2, "max": 6}
+        elif LEAD_DIST_TYPE == "GAUSSIAN":
+            self.lead_time = {"Dist_Type": "UNIFORM",
+                             "mu": 4, "sigma": 2}
         # self.scenario = {"Dist_Type": "UNIFORM",
         #                  "min": 5, "max": 12}
         # self.scenario = {"Dist_Type": "UNIFORM",
@@ -33,7 +41,7 @@ class GymInterface(gym.Env):
         self.cur_episode = 1  # Current episode
         self.cur_outer_loop = 1  # Current outer loop
         self.cur_inner_loop = 1  # Current inner loop
-
+        self.scenario_batch_size = 99999 # Scenario batch size
         # For functions that only work when testing the model
         self.model_test = False
         # Record the cumulative value of each cost
@@ -114,7 +122,7 @@ class GymInterface(gym.Env):
         self.simpy_env, self.inventoryList, self.procurementList, self.productionList, self.sales, self.customer, self.providerList, self.daily_events = env.create_env(
             I, P, DAILY_EVENTS)
         env.simpy_event_processes(self.simpy_env, self.inventoryList, self.procurementList,
-                                  self.productionList, self.sales, self.customer, self.providerList, self.daily_events, I, self.scenario)
+                                  self.productionList, self.sales, self.customer, self.providerList, self.daily_events, I, self.scenario, self.lead_time)
         env.update_daily_report(self.inventoryList)
 
         state_real = self.get_current_state()
@@ -208,8 +216,14 @@ class GymInterface(gym.Env):
                 for cost_name, cost_value in self.cost_dict.items():
                     self.writer.add_scalar(
                         cost_name, cost_value, global_step=self.cur_episode)
+                self.writer.add_scalars('Cost', self.cost_dict, global_step=self.cur_episode)
                 print("Episode: ", self.cur_episode,
                       " / Total reward: ", self.total_reward)
+                
+            if self.outer_end == True and self.scenario_batch_size == self.cur_inner_loop:
+                self.writer.add_scalar(
+                    "inner_end/reward", self.total_reward, global_step=self.cur_episode)
+
             self.total_reward_over_episode.append(self.total_reward)
             self.total_reward = 0
             self.cur_episode += 1
@@ -314,6 +328,8 @@ def evaluate_model(model, env, num_episodes):
             if VALIDATION:
                 action = validation_input(day)
             # Execute action in environment => 현재 Material 1개에 대한 action만 코딩되어 있음. 추후 여러 Material에 대한 action을 코딩해야 함.
+            if len(ORDER_QTY) !=0:
+                action = ORDER_QTY
             obs, reward, done, _ = env.step(action)
             episode_reward += reward  # Accumulate rewards
             ORDER_HISTORY.append(action[0])  # Log order history

@@ -37,11 +37,10 @@ class MetaLearner:
         self.policy = policy
         self.alpha = alpha
         self.beta = beta
-
         self.meta_model = PPO(policy, self.env, verbose=0,
                               n_steps=N_STEPS, learning_rate=self.beta, batch_size=BATCH_SIZE, n_epochs=1)
 
-        self.writer = SummaryWriter(log_dir='./NEW_META_tensorboard_logs')
+        self.writer = SummaryWriter(log_dir = TENSORFLOW_LOGS)
 
     def inner_loop(self, K=K):
         """
@@ -162,14 +161,15 @@ class MetaLearner:
         Performs the meta-test step by averaging gradients across scenarios.
         """
         # eval_scenario = Create_scenario(DIST_TYPE)
-        test_scenario_batch = [Create_scenario(DEMAND_DIST_TYPE)
+        test_scenario_batch = [Create_scenario()
                                for _ in range(test_scenario_batch_size)]
 
         # Set the scenario for the environment
         all_rewards = []
-        for test_scenario in test_scenario_batch:
+        for test_scenario, test_lead_time in test_scenario_batch:
             self.env.reset()
             self.env.scenario = test_scenario
+            self.env.lead_time = test_lead_time
             print("\n\nTEST SCENARIO: ", self.env.scenario)
             meta_mean_reward, meta_std_reward = gw.evaluate_model(
                 self.meta_model, self.env, N_EVAL_EPISODES)
@@ -202,20 +202,26 @@ meta_rewards = []
 random_rewards = []
 
 for iteration in range(num_outer_updates):
+    env.scenario_batch_size = train_scenario_batch_size
     # LINE 3: Sample a batch of scenarios
-    scenario_batch = [Create_scenario(DEMAND_DIST_TYPE)
+    scenario_batch = [Create_scenario()
                       for _ in range(train_scenario_batch_size)]
-
+    if iteration == num_outer_updates-1:
+        meta_learner.env.outer_end = True
     # Adapt the meta-policy to each scenario in the batch
     rollout_list = []
-    for scenario in scenario_batch:  # LINE 4
+    for scenario, lead_time in scenario_batch:  # LINE 4
         print("\n\nTRAINING SCENARIO: ", scenario)
+        print("\n\nTRAINING LEAD_TIME: ", lead_time)
         print("\nOuter Loop: ", env.cur_outer_loop,
               " / Inner Loop: ", env.cur_inner_loop)
 
         # Reset the scenario for the environment
         meta_learner.env.scenario = scenario
+        meta_learner.env.lead_time = lead_time
         print("Scenario: ", meta_learner.env.scenario)
+        print("Lead_time: ", meta_learner.env.lead_time)
+        
         # LINE 5 - 7
         adapted_model = meta_learner.inner_loop()  # LINE 6-7
 
@@ -246,7 +252,7 @@ for iteration in range(num_outer_updates):
     env.cur_episode = 1
     env.cur_inner_loop = 1
     env.cur_outer_loop += 1
-
+    env.outer_end=False
     # Save the trained meta-policy
     meta_learner.meta_model.save(SAVED_MODEL_NAME)
 

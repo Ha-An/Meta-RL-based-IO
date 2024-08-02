@@ -152,7 +152,7 @@ def DEMAND_QTY_FUNC(scenario):
     # Gaussian distribution
     elif scenario["Dist_Type"] == "GAUSSIAN":
         # Gaussian distribution
-        demand = round(np.random.normal(scenario['mean'], scenario['std']))
+        demand = round(np.random.normal(scenario['mu'], scenario['sigma']))
         if demand < 0:
             return 1
         elif demand > INVEN_LEVEL_MAX:
@@ -161,15 +161,15 @@ def DEMAND_QTY_FUNC(scenario):
             return demand
 
 
-def SUP_LEAD_TIME_FUNC():
+def SUP_LEAD_TIME_FUNC(lead_time_dict):
     if LEAD_DIST_TYPE == "UNIFORM":
         # Lead time의 최대 값은 Action Space의 최대 값과 곱하였을 때 INVEN_LEVEL_MAX의 2배를 넘지 못하게 설정 해야 함 (INTRANSIT이 OVER되는 현상을 방지 하기 위해서)
         # SUP_LEAD_TIME must be an integer
-        return random.randint(1, 3)
+        return random.randint(lead_time_dict['min'], lead_time_dict['max'])
 
     elif LEAD_DIST_TYPE == "GAUSSIAN":
-        mean = 4
-        std = 2
+        mean = lead_time_dict['mu']
+        std = lead_time_dict['sigma']
         # Lead time의 최대 값은 Action Space의 최대 값과 곱하였을 때 INVEN_LEVEL_MAX의 2배를 넘지 못하게 설정 해야 함 (INTRANSIT이 OVER되는 현상을 방지 하기 위해서)
         lead_time = np.random.normal(mean, std)
         if lead_time < 0:
@@ -208,8 +208,8 @@ SIM_TIME = 200  # Default: 200 [days] per episode
 
 
 # Distribution types
-DEMAND_DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
-LEAD_DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
+DEMAND_DIST_TYPE = "GAUSSIAN"  # GAUSSIAN, UNIFORM
+LEAD_DIST_TYPE = "GAUSSIAN"  # GAUSSIAN, UNIFORM
 
 
 # Count for intransit inventory
@@ -219,11 +219,11 @@ for id in I.keys():
         MAT_COUNT += 1
 
 # Ordering rules
-ORDER_QTY = [1]
+ORDER_QTY = [2]
 REORDER_LEVEL = 0
 
 # Print logs
-PRINT_SIM = False
+PRINT_SIM = True
 # PRINT_LOG_TIMESTEP = True
 # PRINT_LOG_DAILY_REPORT = True
 

@@ -6,20 +6,34 @@ from config_SimPy import *
 USE_CORRECTION = False
 
 
-def Create_scenario(dist_type):
-    if dist_type == "UNIFORM":
+def Create_scenario():
+    if DEMAND_DIST_TYPE == "UNIFORM":
         # Uniform distribution
         param_min = random.randint(9, 13)
         param_max = random.randint(param_min, 13)
-        scenario = {"Dist_Type": dist_type,
+        scenario = {"Dist_Type": DEMAND_DIST_TYPE,
                     "min": param_min, "max": param_max}
-    elif dist_type == "GAUSSIAN":
+    elif DEMAND_DIST_TYPE == "GAUSSIAN":
         # Gaussian distribution
-        param_mean = random.randint(9, 13)
-        param_std = random.randint(0, 5)
-        scenario = {"Dist_Type": dist_type,
-                    "mean": param_mean, "std": param_std}
-    return scenario
+        param_mu = random.randint(9, 13)
+        param_sigma = random.randint(0, 2)
+        scenario = {"Dist_Type": DEMAND_DIST_TYPE,
+                    "mu": param_mu, "sigma": param_sigma}
+            
+    if LEAD_DIST_TYPE == "UNIFORM":
+        # Uniform distribution
+        param_min = random.randint(1, 7)
+        param_max = random.randint(param_min, 7)
+        leadtime = {"Dist_Type": LEAD_DIST_TYPE,
+                    "min": param_min, "max": param_max}
+    elif LEAD_DIST_TYPE == "GAUSSIAN":
+        # Gaussian distribution
+        # Lead time의 최대 값은 Action Space의 최대 값과 곱하였을 때 INVEN_LEVEL_MAX의 2배를 넘지 못하게 설정 해야 함 (INTRANSIT이 OVER되는 현상을 방지 하기 위해서)
+        param_mu = random.randint(2, 6)
+        param_sigma = random.randint(0, 3)
+        leadtime = {"Dist_Type": LEAD_DIST_TYPE,
+                    "mu": param_mu, "sigma": param_sigma}
+    return scenario, leadtime
 
 
 def DEFINE_FOLDER(folder_name):
@@ -80,8 +94,13 @@ STATE_TEST_EXPORT = False
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
 # Define each dir's parent dir's path
-tensorboard_folder = os.path.join(
-    parent_dir, "DRL_tensorboard_log")
+if DRL_TENSORBOARD == True:
+    tensorboard_folder = os.path.join(
+        parent_dir, "DRL_tensorboard_log")
+    
+elif DRL_TENSORBOARD == False:
+    tensorboard_folder = os.path.join(
+        parent_dir, "META_tensorboard_logs")
 result_csv_folder = os.path.join(parent_dir, "result_CSV")
 STATE_folder = os.path.join(result_csv_folder, "state")
 daily_report_folder = os.path.join(result_csv_folder, "daily_report")
