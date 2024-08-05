@@ -14,25 +14,38 @@ from torch.utils.tensorboard import SummaryWriter
 
 class GymInterface(gym.Env):
     def __init__(self):
-        if DRL_TENSORBOARD:
-            self.writer = SummaryWriter(log_dir=TENSORFLOW_LOGS)
+        self.outer_end = False
+        self.writer = SummaryWriter(log_dir=TENSORFLOW_LOGS)
+        print("Tensorboard Directory: :", TENSORFLOW_LOGS)
         super(GymInterface, self).__init__()
+
+        # Scenario initialization for the demand
         if DEMAND_DIST_TYPE == "UNIFORM":
-            self.scenario = {"Dist_Type": "UNIFORM",
-                             "min": 8, "max": 15}  # Default scenario
+            demand_dist = {"Dist_Type": "UNIFORM",
+                           "min": 8, "max": 15}  # Default scenario
+            # demand_dist = {"Dist_Type": "UNIFORM",
+            #                  "min": 5, "max": 12}
+            # demand_dist = {"Dist_Type": "UNIFORM",
+            #                  "min": 11, "max": 18}
         elif DEMAND_DIST_TYPE == "GAUSSIAN":
-            self.scenario = {"Dist_Type": "GAUSSIAN",
-                             "mu": 11, "sigma": 1}
-        # self.scenario = {"Dist_Type": "UNIFORM",
-        #                  "min": 5, "max": 12}
-        # self.scenario = {"Dist_Type": "UNIFORM",
-        #                  "min": 11, "max": 18}
+            leadtime_dist = {"Dist_Type": "GAUSSIAN",
+                             "mean": 11, "std": 4}
+        # Scenario initialization for the demand
+        if LEAD_DIST_TYPE == "UNIFORM":
+            leadtime_dist = {"Dist_Type": "UNIFORM",
+                             "min": 1, "max": 5}  # Default scenario
+        elif LEAD_DIST_TYPE == "GAUSSIAN":
+            leadtime_dist = {"Dist_Type": "GAUSSIAN",
+                             "mean": 3, "std": 3}
+        self.scenario = {"DEMAND": demand_dist, "LEADTIME": leadtime_dist}
+
         self.shortages = 0
         self.total_reward_over_episode = []
         self.total_reward = 0
         self.cur_episode = 1  # Current episode
         self.cur_outer_loop = 1  # Current outer loop
         self.cur_inner_loop = 1  # Current inner loop
+        self.scenario_batch_size = 99999  # Initialize the scenario batch size
 
         # For functions that only work when testing the model
         self.model_test = False
@@ -47,31 +60,7 @@ class GymInterface(gym.Env):
         os = []
 
         # Action space, observation space
-        if RL_ALGORITHM == "DQN":
-            # # Define action space
-            # self.action_space = spaces.Discrete(len(ACTION_SPACE))
-            # # Define observation space:
-            # os = []
-            # for _ in range(len(I)):
-            #     os.append(INVEN_LEVEL_MAX+1)
-            #     os.append(DEMAND_QTY_MAX+1+PRODUCT_OUTGOING_CORRECTION)
-            #     os.append(DEMAND_QTY_MAX+1)
-            # self.observation_space = spaces.MultiDiscrete(os)
-            pass
-        elif RL_ALGORITHM == "DDPG":
-            # # Define action space
-            # actionSpace = []
-            # for i in range(len(I)):
-            #     if I[i]["TYPE"] == "Material":
-            #         actionSpace.append(len(ACTION_SPACE))
-            # self.action_space = spaces.MultiDiscrete(actionSpace)
-
-            # os = [102 for _ in range(len(I)*2+1)]
-            # self.observation_space = spaces.MultiDiscrete(os)
-            # print(os)
-            pass
-
-        elif RL_ALGORITHM == "PPO":
+        if RL_ALGORITHM == "PPO":
             # Define action space
             actionSpace = []
             for i in range(len(I)):
@@ -98,9 +87,14 @@ class GymInterface(gym.Env):
             - Demand - Inventory Level of Product
             '''
             self.observation_space = spaces.MultiDiscrete(os)
-            print(os)
+        elif RL_ALGORITHM == "DQN":
+            pass
+        elif RL_ALGORITHM == "DDPG":
+            pass
+        print(os)
 
     def reset(self):
+        # Initialize the total reward for the episode
         self.cost_dict = {
             'Holding cost': 0,
             'Process cost': 0,
@@ -109,8 +103,6 @@ class GymInterface(gym.Env):
             'Shortage cost': 0
         }
         # Initialize the simulation environment
-        # print("\nOuter Loop: ", self.cur_outer_loop, " / Inner Loop: ",
-        #       self.cur_inner_loop, " / Episode: ", self.cur_episode)
         self.simpy_env, self.inventoryList, self.procurementList, self.productionList, self.sales, self.customer, self.providerList, self.daily_events = env.create_env(
             I, P, DAILY_EVENTS)
         env.simpy_event_processes(self.simpy_env, self.inventoryList, self.procurementList,
@@ -125,7 +117,6 @@ class GymInterface(gym.Env):
             return state_real
 
     def step(self, action):
-
         # Update the action of the agent
         if RL_ALGORITHM == "PPO":
             i = 0
@@ -208,8 +199,14 @@ class GymInterface(gym.Env):
                 for cost_name, cost_value in self.cost_dict.items():
                     self.writer.add_scalar(
                         cost_name, cost_value, global_step=self.cur_episode)
+                self.writer.add_scalars(
+                    'Cost', self.cost_dict, global_step=self.cur_episode)
                 print("Episode: ", self.cur_episode,
                       " / Total reward: ", self.total_reward)
+
+            if self.outer_end == True and self.scenario_batch_size == self.cur_inner_loop:
+                self.writer.add_scalar(
+                    "inner_end/reward", self.total_reward, global_step=self.cur_episode)
             self.total_reward_over_episode.append(self.total_reward)
             self.total_reward = 0
             self.cur_episode += 1
@@ -305,7 +302,6 @@ def evaluate_model(model, env, num_episodes):
         done = False  # Flag to check if episode is finished
         day = 1  # 차후 validaition끝나면 지울것
         while not done:
-
             for x in range(len(env.inventoryList)):
                 episode_inventory[x].append(
                     env.inventoryList[x].on_hand_inventory)
@@ -313,7 +309,9 @@ def evaluate_model(model, env, num_episodes):
             # validation 끝나면 지울것
             if VALIDATION:
                 action = validation_input(day)
-            # Execute action in environment => 현재 Material 1개에 대한 action만 코딩되어 있음. 추후 여러 Material에 대한 action을 코딩해야 함.
+            # Execute action in environment
+            if len(ORDER_QTY) != 0:
+                action = ORDER_QTY
             obs, reward, done, _ = env.step(action)
             episode_reward += reward  # Accumulate rewards
             ORDER_HISTORY.append(action[0])  # Log order history

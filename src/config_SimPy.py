@@ -128,7 +128,6 @@ def DEFINE_FOLDER(folder_name):
         folder_name = os.path.join(folder_name, f"Train_{len(file_list)+1}")
     else:
         folder_name = os.path.join(folder_name, "Train_1")
-
     return folder_name
 
 
@@ -161,15 +160,14 @@ def DEMAND_QTY_FUNC(scenario):
             return demand
 
 
-def SUP_LEAD_TIME_FUNC():
-    if LEAD_DIST_TYPE == "UNIFORM":
+def SUP_LEAD_TIME_FUNC(lead_time_dict):
+    if lead_time_dict["Dist_Type"] == "UNIFORM":
         # Lead time의 최대 값은 Action Space의 최대 값과 곱하였을 때 INVEN_LEVEL_MAX의 2배를 넘지 못하게 설정 해야 함 (INTRANSIT이 OVER되는 현상을 방지 하기 위해서)
         # SUP_LEAD_TIME must be an integer
-        return random.randint(1, 3)
-
-    elif LEAD_DIST_TYPE == "GAUSSIAN":
-        mean = 4
-        std = 2
+        return random.randint(lead_time_dict['min'], lead_time_dict['max'])
+    elif lead_time_dict["Dist_Type"] == "GAUSSIAN":
+        mean = lead_time_dict['mean']
+        std = lead_time_dict['std']
         # Lead time의 최대 값은 Action Space의 최대 값과 곱하였을 때 INVEN_LEVEL_MAX의 2배를 넘지 못하게 설정 해야 함 (INTRANSIT이 OVER되는 현상을 방지 하기 위해서)
         lead_time = np.random.normal(mean, std)
         if lead_time < 0:
@@ -219,7 +217,7 @@ for id in I.keys():
         MAT_COUNT += 1
 
 # Ordering rules
-ORDER_QTY = [1]
+ORDER_QTY = [1]  # If not used, the list should be left empty: []
 REORDER_LEVEL = 0
 
 # Print logs

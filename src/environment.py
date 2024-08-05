@@ -24,7 +24,7 @@ class Inventory:
         self.unit_holding_cost = holding_cost / 24
         self.holding_cost_last_updated = 0.0  # Last time holding cost was updated
 
-    def update_demand_quantity(self, demand_qty, daily_events):
+    def update_demand_quantity(self, daily_events):
         """
         Update the demand quantity and log the event.
         """
@@ -94,11 +94,11 @@ class Supplier:
         self.name = name
         self.item_id = item_id
 
-    def deliver_to_manufacturer(self, procurement, material_qty, material_inventory, daily_events):
+    def deliver_to_manufacturer(self, procurement, material_qty, material_inventory, daily_events, lead_time_dict):
         """
         Deliver materials to the manufacturer after a certain lead time.
         """
-        I[self.item_id]["SUP_LEAD_TIME"] = SUP_LEAD_TIME_FUNC()
+        I[self.item_id]["SUP_LEAD_TIME"] = SUP_LEAD_TIME_FUNC(lead_time_dict)
         lead_time = I[self.item_id]["SUP_LEAD_TIME"]
         # Log the delivery event with lead time
         daily_events.append(
@@ -136,7 +136,7 @@ class Procurement:
         daily_events.append(
             f"{present_daytime(self.env.now)}: {I[self.item_id]['NAME']} has delivered                             : {material_qty} units ")  # Record when Material provide
 
-    def order_material(self, supplier, inventory, daily_events):
+    def order_material(self, supplier, inventory, daily_events, lead_time_dict):
         """
         Place orders for materials to the supplier.
         """
@@ -160,7 +160,7 @@ class Procurement:
                 Cost.cal_cost(self, "Order cost")
                 # Initiate the delivery process by calling deliver_to_manufacturer method of the supplier
                 self.env.process(supplier.deliver_to_manufacturer(
-                    self, order_size, inventory, daily_events))
+                    self, order_size, inventory, daily_events, lead_time_dict))
                 # Record in_transition_inventory
                 daily_events.append(
                     f"{present_daytime(self.env.now)}: {I[self.item_id]['NAME']}\'s In_transition_inventory                    : {inventory.in_transition_inventory} units ")
@@ -308,7 +308,7 @@ class Sales:
         Receive demands from customers and initiate the delivery process.
         """
         # Update demand quantity in inventory
-        product_inventory.update_demand_quantity(demand_qty, daily_events)
+        product_inventory.update_demand_quantity(daily_events)
         # Initiate delivery process
         self.env.process(self._deliver_to_cust(
             demand_qty, product_inventory, daily_events))
@@ -425,15 +425,15 @@ def create_env(I, P, daily_events):
     return simpy_env, inventoryList, procurementList, productionList, sales, customer, supplierList, daily_events
 
 
+# Event processes for SimPy simulation
 def simpy_event_processes(simpy_env, inventoryList, procurementList, productionList, sales, customer, supplierList, daily_events, I, scenario):
-    # Event processes for SimPy simulation
     for production in productionList:
         simpy_env.process(production.process_items(daily_events))
     for i in range(len(supplierList)):
         simpy_env.process(procurementList[i].order_material(
-            supplierList[i], inventoryList[supplierList[i].item_id], daily_events))
+            supplierList[i], inventoryList[supplierList[i].item_id], daily_events, scenario["LEADTIME"]))
     simpy_env.process(customer.order_product(
-        sales, inventoryList[I[0]["ID"]], daily_events, scenario))
+        sales, inventoryList[I[0]["ID"]], daily_events, scenario["DEMAND"]))
 
 
 def update_daily_report(inventoryList):

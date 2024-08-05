@@ -12,15 +12,7 @@ from log_RL import *
 
 
 def build_model():
-    if RL_ALGORITHM == "DQN":
-        model = DQN("MlpPolicy", env, verbose=0)
-        # model = DQN("MlpPolicy", env, learning_rate=BEST_PARAMS['learning_rate'], gamma=BEST_PARAMS['gamma'],
-        #             batch_size=BEST_PARAMS['batch_size'], verbose=0)
-    elif RL_ALGORITHM == "DDPG":
-        model = DQN("MlpPolicy", env, verbose=0,)
-        # model = DDPG("MlpPolicy", env, learning_rate=BEST_PARAMS['learning_rate'], gamma=BEST_PARAMS['gamma'],
-        #              batch_size=BEST_PARAMS['batch_size'], verbose=0)
-    elif RL_ALGORITHM == "PPO":
+    if RL_ALGORITHM == "PPO":
         # [Train 1] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME) DEFAULT: learning_rate=0.0003, batch_size=64 => 28 mins
         # [Train 2] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME, learning_rate=0.0001, batch_size=16) => 50 mins
         # [Train 3] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME, learning_rate=0.0002, batch_size=16) => 49 mins
@@ -35,19 +27,11 @@ def build_model():
         # model = PPO("MlpPolicy", env, learning_rate=BEST_PARAMS['LEARNING_RATE'], gamma=BEST_PARAMS['GAMMA'],
         #             batch_size=BEST_PARAMS['BATCH_SIZE'], n_steps=BEST_PARAMS['N_STEPS'], verbose=0)
         print(env.observation_space)
+    elif RL_ALGORITHM == "DQN":
+        pass
+    elif RL_ALGORITHM == "DDPG":
+        pass
     return model
-
-
-'''
-def export_report(inventoryList):
-    for x in range(len(inventoryList)):
-        for report in DAILY_REPORTS:
-            export_Daily_Report.append(report[x])
-    daily_reports = pd.DataFrame(export_Daily_Report)
-    daily_reports.columns = ["Day", "Name", "Type",
-                         "Start", "Income", "Outcome", "End"]
-    daily_reports.to_csv("./Daily_Report.csv")
-'''
 
 
 # Start timing the computation
@@ -65,15 +49,7 @@ if OPTIMIZE_HYPERPARAMETERS:
 else:
     # Build the model
     if LOAD_MODEL:
-        if RL_ALGORITHM == "DQN":
-            model = DQN.load(os.path.join(
-                SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)
-
-        elif RL_ALGORITHM == "DDPG":
-            model = DDPG.load(os.path.join(
-                SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)
-
-        elif RL_ALGORITHM == "PPO":
+        if RL_ALGORITHM == "PPO":
             model = PPO.load(os.path.join(
                 SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)
         print(f"{LOAD_MODEL_NAME} is loaded successfully")

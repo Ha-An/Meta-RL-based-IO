@@ -23,7 +23,7 @@ N_STEPS = SIM_TIME*K  # Default 2048
 BETA = 0.0003  # Outer loop step size ## Default: 0.001
 train_scenario_batch_size = 10  # Batch size for random chosen scenarios
 test_scenario_batch_size = 5  # Batch size for random chosen scenarios
-num_outer_updates = 600  # Number of outer loop updates -> meta-training iterations
+num_outer_updates = 500  # Number of outer loop updates -> meta-training iterations
 
 # Meta-learning algorithm
 
@@ -40,8 +40,7 @@ class MetaLearner:
 
         self.meta_model = PPO(policy, self.env, verbose=0,
                               n_steps=N_STEPS, learning_rate=self.beta, batch_size=BATCH_SIZE, n_epochs=1)
-
-        self.writer = SummaryWriter(log_dir='./NEW_META_tensorboard_logs')
+        self.writer = SummaryWriter(log_dir=TENSORFLOW_LOGS)
 
     def inner_loop(self, K=K):
         """
@@ -162,12 +161,13 @@ class MetaLearner:
         Performs the meta-test step by averaging gradients across scenarios.
         """
         # eval_scenario = Create_scenario(DIST_TYPE)
-        test_scenario_batch = [Create_scenario(DEMAND_DIST_TYPE)
+        test_scenario_batch = [Create_scenario()
                                for _ in range(test_scenario_batch_size)]
 
         # Set the scenario for the environment
         all_rewards = []
         for test_scenario in test_scenario_batch:
+            # for test_scenario in test_scenario_batch:
             self.env.reset()
             self.env.scenario = test_scenario
             print("\n\nTEST SCENARIO: ", self.env.scenario)
@@ -202,20 +202,24 @@ meta_rewards = []
 random_rewards = []
 
 for iteration in range(num_outer_updates):
+    env.scenario_batch_size = train_scenario_batch_size
     # LINE 3: Sample a batch of scenarios
-    scenario_batch = [Create_scenario(DEMAND_DIST_TYPE)
+    scenario_batch = [Create_scenario()
                       for _ in range(train_scenario_batch_size)]
-
+    if iteration == num_outer_updates-1:
+        meta_learner.env.outer_end = True
     # Adapt the meta-policy to each scenario in the batch
     rollout_list = []
     for scenario in scenario_batch:  # LINE 4
-        print("\n\nTRAINING SCENARIO: ", scenario)
+        print("\n\nTRAINING SCENARIO(DEMAND): ", scenario["DEMAND"])
+        print("\n\nTRAINING SCENARIO(LEAD_TIME): ", scenario["LEADTIME"])
         print("\nOuter Loop: ", env.cur_outer_loop,
               " / Inner Loop: ", env.cur_inner_loop)
 
         # Reset the scenario for the environment
         meta_learner.env.scenario = scenario
-        print("Scenario: ", meta_learner.env.scenario)
+        print("Demand: ", meta_learner.env.scenario["DEMAND"])
+        print("Lead_time: ", meta_learner.env.scenario["LEADTIME"])
         # LINE 5 - 7
         adapted_model = meta_learner.inner_loop()  # LINE 6-7
 
@@ -246,6 +250,7 @@ for iteration in range(num_outer_updates):
     env.cur_episode = 1
     env.cur_inner_loop = 1
     env.cur_outer_loop += 1
+    env.outer_end = False
 
     # Save the trained meta-policy
     meta_learner.meta_model.save(SAVED_MODEL_NAME)
