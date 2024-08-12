@@ -9,8 +9,10 @@ USE_CORRECTION = False
 def Create_scenario():
     if DEMAND_DIST_TYPE == "UNIFORM":
         # Uniform distribution
-        param_min = random.randint(9, 14)
-        param_max = random.randint(param_min, 14)
+        # param_min = random.randint(9, 14)
+        # param_max = random.randint(param_min, 14)
+        param_min = random.randint(10, 13)
+        param_max = random.randint(param_min, 13)
         demand_dist = {"Dist_Type": DEMAND_DIST_TYPE,
                        "min": param_min, "max": param_max}
     elif DEMAND_DIST_TYPE == "GAUSSIAN":
@@ -56,7 +58,7 @@ def save_path(path):
 
 
 # Episode
-N_EPISODES = 5  # 3000
+N_EPISODES = 5000  # 3000
 
 # RL algorithms
 RL_ALGORITHM = "PPO"  # "DP", "DQN", "DDPG", "PPO", "SAC"
@@ -67,7 +69,7 @@ RL_ALGORITHM = "PPO"  # "DP", "DQN", "DDPG", "PPO", "SAC"
 # Lead time의 최대 값은 Action Space의 최대 값과 곱하였을 때 INVEN_LEVEL_MAX의 2배를 넘지 못하게 설정 해야 함 (INTRANSIT이 OVER되는 현상을 방지 하기 위해서)
 ACTION_SPACE = [0, 1, 2, 3, 4, 5]
 
-DRL_TENSORBOARD = False
+DRL_TENSORBOARD = True
 
 # Hyperparameter optimization
 OPTIMIZE_HYPERPARAMETERS = False
@@ -88,7 +90,7 @@ parent_dir = os.path.dirname(current_dir)
 # Define dir's path
 if DRL_TENSORBOARD == True:
     tensorboard_folder = os.path.join(
-        parent_dir, "DRL_tensorboard_log")
+        parent_dir, "NEW_DRL_tensorboard_logs")
 elif DRL_TENSORBOARD == False:
     tensorboard_folder = os.path.join(
         parent_dir, "NEW_META_tensorboard_logs")
@@ -105,15 +107,16 @@ REPORT_LOGS = save_path(daily_report_folder)
 
 
 # Visualize_Graph
-VIZ_INVEN_LINE = False
-VIZ_INVEN_PIE = False
-VIZ_COST_PIE = False
-VIZ_COST_BOX = False
+VIZ_INVEN_LINE = True
+VIZ_INVEN_PIE = True
+VIZ_COST_PIE = True
+VIZ_COST_BOX = True
 
 # Saved Model
 SAVED_MODEL_PATH = os.path.join(parent_dir, "Saved_Model")
 SAVE_MODEL = False
-SAVED_MODEL_NAME = "PPO_Default_10000"
+# SAVED_MODEL_NAME = "PPO_Default_1000"
+SAVED_MODEL_NAME = "MAML_PPO_AP3_E5_O1000"
 
 # Load Model
 LOAD_MODEL = False

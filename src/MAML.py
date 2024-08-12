@@ -23,7 +23,7 @@ N_STEPS = SIM_TIME*K  # Default 2048
 BETA = 0.0003  # Outer loop step size ## Default: 0.001
 train_scenario_batch_size = 10  # Batch size for random chosen scenarios
 test_scenario_batch_size = 5  # Batch size for random chosen scenarios
-num_outer_updates = 500  # Number of outer loop updates -> meta-training iterations
+num_outer_updates = 1000  # Number of outer loop updates -> meta-training iterations
 
 # Meta-learning algorithm
 

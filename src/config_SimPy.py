@@ -30,7 +30,7 @@ import numpy as np
 # PROCESS_COST: Processing cost of the process [$/unit]
 # PROCESS_STOP_COST: Penalty cost for stopping the process [$/unit]
 
-
+'''
 # Assembly Process 1
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
          "CUST_ORDER_CYCLE": 7,
@@ -115,7 +115,7 @@ P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_F
          "OUTPUT": I[7], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2},
      2: {"ID": 2, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[4], I[5], I[7]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1],
          "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
-'''
+
 
 # Options for RL states
 DAILY_CHANGE = 0  # 0: False / 1: True
@@ -216,9 +216,12 @@ for id in I.keys():
     if I[id]["TYPE"] == "Material":
         MAT_COUNT += 1
 
-# Ordering rules
-ORDER_QTY = [1]  # If not used, the list should be left empty: []
-REORDER_LEVEL = 0
+# Ordering rules -> If not used, the list should be left empty: []
+ORDER_QTY = []
+# ORDER_QTY = [1] # AP1
+# ORDER_QTY = [1, 1, 1, 1, 1]  # AP3
+
+# REORDER_LEVEL = 0
 
 # Print logs
 PRINT_SIM = False
