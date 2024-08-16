@@ -20,7 +20,7 @@ ALPHA = 0.0001  # Inner loop step size (사용되지 않는 값) ->  SB3 PPO 기
 BATCH_SIZE = 20  # Default 64
 N_STEPS = SIM_TIME*K  # Default 2048
 
-BETA = 0.0003  # Outer loop step size ## Default: 0.001
+BETA = 0.0001  # Outer loop step size ## Default: 0.001
 train_scenario_batch_size = 10  # Batch size for random chosen scenarios
 test_scenario_batch_size = 5  # Batch size for random chosen scenarios
 num_outer_updates = 1000  # Number of outer loop updates -> meta-training iterations

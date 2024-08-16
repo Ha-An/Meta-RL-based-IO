@@ -30,7 +30,7 @@ import numpy as np
 # PROCESS_COST: Processing cost of the process [$/unit]
 # PROCESS_STOP_COST: Penalty cost for stopping the process [$/unit]
 
-'''
+
 # Assembly Process 1
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
          "CUST_ORDER_CYCLE": 7,
@@ -51,6 +51,50 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
          "LOT_SIZE_ORDER": 0}}
 P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1]], "QNTY_FOR_INPUT_ITEM": [
     1], "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
+'''
+# Assembly Process 2
+I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
+         "CUST_ORDER_CYCLE": 7,
+         "INIT_LEVEL": 0,
+         "DEMAND_QUANTITY": 0,
+         "HOLD_COST": 1,
+         "SETUP_COST_PRO": 1,
+         "DELIVERY_COST": 1,
+         "DUE_DATE": 7,
+         "SHORTAGE_COST_PRO": 50},
+     1: {"ID": 1, "TYPE": "Material", "NAME": "MAT 1",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+     2: {"ID": 2, "TYPE": "Material", "NAME": "MAT 2",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+     3: {"ID": 3, "TYPE": "Material", "NAME": "MAT 3",
+         "MANU_ORDER_CYCLE": 1,
+         "INIT_LEVEL": 2,
+         "SUP_LEAD_TIME": 2,  # SUP_LEAD_TIME must be an integer
+         "HOLD_COST": 1,
+         "PURCHASE_COST": 2,
+         "ORDER_COST_TO_SUP": 1,
+         "LOT_SIZE_ORDER": 0},
+     4: {"ID": 4, "TYPE": "WIP", "NAME": "WIP 1",
+         "INIT_LEVEL": 1,
+         "HOLD_COST": 1}}
+
+P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_FOR_INPUT_ITEM": [1, 1],
+         "OUTPUT": I[4], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2},
+     1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[2], I[3], I[4]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1],
+         "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
+'''
 '''
 # Assembly Process 3
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
@@ -115,7 +159,7 @@ P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_F
          "OUTPUT": I[7], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2},
      2: {"ID": 2, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[4], I[5], I[7]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1],
          "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
-
+'''
 
 # Options for RL states
 DAILY_CHANGE = 0  # 0: False / 1: True
@@ -206,8 +250,8 @@ SIM_TIME = 200  # Default: 200 [days] per episode
 
 
 # Distribution types
-DEMAND_DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
-LEAD_DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
+DEMAND_DIST_TYPE = "GAUSSIAN"  # GAUSSIAN, UNIFORM
+LEAD_DIST_TYPE = "GAUSSIAN"  # GAUSSIAN, UNIFORM
 
 
 # Count for intransit inventory
@@ -232,5 +276,5 @@ PRINT_SIM = False
 # If False, the total cost is calculated based on the inventory level for every 24 hours.
 # Otherwise, the total cost is accumulated every hour.
 HOURLY_COST_MODEL = True
-VISUALIAZTION = [1, 0, 1]  # PRINT RAW_MATERIAL, WIP, PRODUCT
+VISUALIAZTION = [1, 1, 1]  # PRINT RAW_MATERIAL, WIP, PRODUCT
 TIME_CORRECTION = 0.0001

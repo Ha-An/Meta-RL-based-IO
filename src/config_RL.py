@@ -18,7 +18,7 @@ def Create_scenario():
     elif DEMAND_DIST_TYPE == "GAUSSIAN":
         # Gaussian distribution
         param_mean = random.randint(9, 13)
-        param_std = random.randint(0, 5)
+        param_std = random.randint(1, 4)
         demand_dist = {"Dist_Type": DEMAND_DIST_TYPE,
                        "mean": param_mean, "std": param_std}
 
@@ -31,8 +31,8 @@ def Create_scenario():
     elif LEAD_DIST_TYPE == "GAUSSIAN":
         # Gaussian distribution
         # Lead time의 최대 값은 Action Space의 최대 값과 곱하였을 때 INVEN_LEVEL_MAX의 2배를 넘지 못하게 설정 해야 함 (INTRANSIT이 OVER되는 현상을 방지 하기 위해서)
-        param_mean = random.randint(2, 6)
-        param_std = random.randint(0, 3)
+        param_mean = random.randint(1, 3)
+        param_std = random.randint(1, 3)
         leadtime_dist = {"Dist_Type": LEAD_DIST_TYPE,
                          "mean": param_mean, "std": param_std}
     scenario = {"DEMAND": demand_dist, "LEADTIME": leadtime_dist}
@@ -44,8 +44,10 @@ def DEFINE_FOLDER(folder_name):
     if os.path.exists(folder_name):
         file_list = os.listdir(folder_name)
         folder_name = os.path.join(folder_name, f"Train_{len(file_list)+1}")
+        os.makedirs(folder_name)
     else:
         folder_name = os.path.join(folder_name, "Train_1")
+        os.makedirs(folder_name)
     return folder_name
 
 
@@ -58,7 +60,7 @@ def save_path(path):
 
 
 # Episode
-N_EPISODES = 5000  # 3000
+N_EPISODES = 10  # 3000
 
 # RL algorithms
 RL_ALGORITHM = "PPO"  # "DP", "DQN", "DDPG", "PPO", "SAC"
@@ -69,7 +71,10 @@ RL_ALGORITHM = "PPO"  # "DP", "DQN", "DDPG", "PPO", "SAC"
 # Lead time의 최대 값은 Action Space의 최대 값과 곱하였을 때 INVEN_LEVEL_MAX의 2배를 넘지 못하게 설정 해야 함 (INTRANSIT이 OVER되는 현상을 방지 하기 위해서)
 ACTION_SPACE = [0, 1, 2, 3, 4, 5]
 
-DRL_TENSORBOARD = True
+# Action 값 고정 여부 -> config_SimPy.py에서 고정값 설정
+CONSISTENT_ACTION = False  # True: Action 값 고정 / False: RL 에이전트에 따라 Action 값 변동
+
+DRL_TENSORBOARD = False
 
 # Hyperparameter optimization
 OPTIMIZE_HYPERPARAMETERS = False
@@ -98,6 +103,7 @@ elif DRL_TENSORBOARD == False:
 result_csv_folder = os.path.join(parent_dir, "result_CSV")
 STATE_folder = os.path.join(result_csv_folder, "state")
 daily_report_folder = os.path.join(result_csv_folder, "daily_report")
+graph_path = save_path(os.path.join(parent_dir, 'TEST_GRAPH'))
 
 # Define dir's path
 TENSORFLOW_LOGS = DEFINE_FOLDER(tensorboard_folder)
@@ -105,22 +111,24 @@ TENSORFLOW_LOGS = DEFINE_FOLDER(tensorboard_folder)
 STATE = save_path(STATE_folder)
 REPORT_LOGS = save_path(daily_report_folder)
 
+GRAPH_LOG = graph_path
+
 
 # Visualize_Graph
-VIZ_INVEN_LINE = True
-VIZ_INVEN_PIE = True
-VIZ_COST_PIE = True
-VIZ_COST_BOX = True
+VIZ_INVEN_LINE = False
+VIZ_INVEN_PIE = False
+VIZ_COST_PIE = False
+VIZ_COST_BOX = False
 
 # Saved Model
 SAVED_MODEL_PATH = os.path.join(parent_dir, "Saved_Model")
-SAVE_MODEL = False
+SAVE_MODEL = True
 # SAVED_MODEL_NAME = "PPO_Default_1000"
-SAVED_MODEL_NAME = "MAML_PPO_AP3_E5_O1000"
+SAVED_MODEL_NAME = "MAML_PPO_AP1_E10_O1000"
 
 # Load Model
 LOAD_MODEL = False
-LOAD_MODEL_NAME = "E1_MAML_PPO"
+LOAD_MODEL_NAME = "MAML_PPO_AP1_E20"
 
 # Non-stationary demand
 mean_demand = 100

@@ -40,3 +40,4 @@ def visualization(export_Daily_Report):
     path = os.path.join(GRAPH_FOLDER, f'그래프.png')
     plt.savefig(path)
     plt.clf()
+    plt.close()

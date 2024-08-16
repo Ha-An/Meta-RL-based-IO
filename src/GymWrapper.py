@@ -21,17 +21,17 @@ class GymInterface(gym.Env):
 
         # Scenario initialization for the demand
         if DEMAND_DIST_TYPE == "UNIFORM":
+            # demand_dist = {"Dist_Type": "UNIFORM",
+            #                "min": 8, "max": 15}  # Default scenario
             demand_dist = {"Dist_Type": "UNIFORM",
-                           "min": 8, "max": 15}  # Default scenario
-            demand_dist = {"Dist_Type": "UNIFORM",
-                           "min": 9, "max": 14}  # Default scenario
+                           "min": 10, "max": 13}  # Default scenario
             # demand_dist = {"Dist_Type": "UNIFORM",
             #                  "min": 5, "max": 12}
             # demand_dist = {"Dist_Type": "UNIFORM",
             #                  "min": 11, "max": 18}
         elif DEMAND_DIST_TYPE == "GAUSSIAN":
-            leadtime_dist = {"Dist_Type": "GAUSSIAN",
-                             "mean": 11, "std": 4}
+            demand_dist = {"Dist_Type": "GAUSSIAN",
+                           "mean": 11, "std": 4}
         # Scenario initialization for the demand
         if LEAD_DIST_TYPE == "UNIFORM":
             leadtime_dist = {"Dist_Type": "UNIFORM",
@@ -125,9 +125,11 @@ class GymInterface(gym.Env):
             for _ in range(len(I)):
                 if I[_]["TYPE"] == "Material":
                     # Set action as predicted value
-                    I[_]["LOT_SIZE_ORDER"] = action[i]
-                    # Set action to fixed value
-                    # I[_]["LOT_SIZE_ORDER"] = ORDER_QTY[i]
+                    if CONSISTENT_ACTION:
+                        I[_]["LOT_SIZE_ORDER"] = ORDER_QTY[i]
+                    else:
+                        I[_]["LOT_SIZE_ORDER"] = action[i]
+
                     i += 1
         elif RL_ALGORITHM == "DQN":
             pass
@@ -367,13 +369,20 @@ def cal_cost_avg():
         cost_avg[key] = cost_avg[key]/N_EVAL_EPISODES
     # Visualize
     if VIZ_COST_PIE:
-        plt.figure(figsize=(20, 20))
+        plt.figure(figsize=(10, 5))
         plt.pie(cost_avg.values(), explode=[
-                0.2, 0.2, 0.2, 0.2, 0.2], labels=cost_avg.keys(), autopct='%1.1f%%')
+                0.2 for x in range(5)], labels=cost_avg.keys(), autopct='%1.1f%%')
+        path = os.path.join(GRAPH_LOG, 'COST_PI.png')
+        plt.savefig(path)
         plt.show()
+        plt.close()
+
     if VIZ_COST_BOX:
         plt.boxplot(total_avg)
+        path = os.path.join(GRAPH_LOG, 'COST_BOX.png')
+        plt.savefig(path)
         plt.show()
+        plt.close()
 
 
 def Visualize_invens(inventory, demand_qty, Mat_Order, all_rewards):
@@ -390,7 +399,7 @@ def Visualize_invens(inventory, demand_qty, Mat_Order, all_rewards):
         lable.append(I[id]["NAME"])
 
     if VIZ_INVEN_PIE:
-        plt.figure(figsize=(20, 20))
+        plt.figure(figsize=(10, 5))
         for x in range(N_EVAL_EPISODES):
             for y in range(len(I)):
                 for z in range(SIM_TIME):
@@ -398,21 +407,39 @@ def Visualize_invens(inventory, demand_qty, Mat_Order, all_rewards):
 
         plt.pie([sum(avg_inven[x])/N_EVAL_EPISODES for x in range(len(I))],
                 explode=[0.2 for _ in range(len(I))], labels=lable, autopct='%1.1f%%')
-        plt.legend()
+        path = os.path.join(GRAPH_LOG, 'INVEN_PI.png')
+        plt.savefig(path)
         plt.show()
+        plt.close()
 
     if VIZ_INVEN_LINE:
-        plt.figure(figsize=(20, 20))
+        line_dict = {}
+        writer = SummaryWriter(log_dir=GRAPH_LOG)
+        plt.figure(figsize=(15, 5))
         # Inven Line
         for id in I.keys():
             # Visualize the inventory levels of the best episode
             plt.plot(inventory[best_index][id], label=lable[id])
+            line_dict[lable[id]] = inventory[best_index][id]
+
         plt.plot(demand_qty[-SIM_TIME:], "y--", label="Demand_QTY")
+        line_dict[f"Demand_QTY"] = demand_qty[-SIM_TIME:]
         # Order_Line
         for key in Mat_Order.keys():
+            line_dict[f"ORDER {key}"] = Mat_Order[key][-SIM_TIME:]
             plt.plot(Mat_Order[key][-SIM_TIME:], label=f"ORDER {key}")
-        plt.legend()
+        plt.yticks(range(0, 21, 5))
+        plt.legend(bbox_to_anchor=(1, 0.5))
+        path = os.path.join(GRAPH_LOG, 'INVEN_LINE.png')
+        plt.savefig(path)
         plt.show()
+        plt.close()
+
+        for day in range(SIM_TIME):
+            temp_dict = {}
+            for key, item in line_dict.items():
+                temp_dict[key] = item[day]
+            writer.add_scalars("Test_Line", temp_dict, global_step=day+1)
 
 
 def export_state(Record_Type):
