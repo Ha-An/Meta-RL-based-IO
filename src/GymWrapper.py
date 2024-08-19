@@ -22,20 +22,20 @@ class GymInterface(gym.Env):
         # Scenario initialization for the demand
         if DEMAND_DIST_TYPE == "UNIFORM":
             # demand_dist = {"Dist_Type": "UNIFORM",
-            #                "min": 8, "max": 15}  # Default scenario
+            #                "min": 8, "max": 15}
+            # demand_dist = {"Dist_Type": "UNIFORM",
+            #                "min": 10, "max": 13}  # Default scenario
             demand_dist = {"Dist_Type": "UNIFORM",
-                           "min": 10, "max": 13}  # Default scenario
-            # demand_dist = {"Dist_Type": "UNIFORM",
-            #                  "min": 5, "max": 12}
-            # demand_dist = {"Dist_Type": "UNIFORM",
-            #                  "min": 11, "max": 18}
+                           "min": 5, "max": 10}
         elif DEMAND_DIST_TYPE == "GAUSSIAN":
             demand_dist = {"Dist_Type": "GAUSSIAN",
                            "mean": 11, "std": 4}
         # Scenario initialization for the demand
         if LEAD_DIST_TYPE == "UNIFORM":
+            # leadtime_dist = {"Dist_Type": "UNIFORM",
+            #                  "min": 1, "max": 3}  # Default scenario
             leadtime_dist = {"Dist_Type": "UNIFORM",
-                             "min": 1, "max": 3}  # Default scenario
+                             "min": 3, "max": 4}
         elif LEAD_DIST_TYPE == "GAUSSIAN":
             leadtime_dist = {"Dist_Type": "GAUSSIAN",
                              "mean": 3, "std": 3}

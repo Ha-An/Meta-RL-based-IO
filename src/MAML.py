@@ -5,6 +5,7 @@ from config_SimPy import *
 from config_RL import *
 from log_SimPy import *
 from log_RL import *
+from Def_Scenarios import *
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -156,13 +157,13 @@ class MetaLearner:
             self.meta_model.rollout_buffer = rollout_buffer
             self.custom_train()
 
-    def meta_test(self):
+    def meta_test(self, test_scenario_batch):
         """
         Performs the meta-test step by averaging gradients across scenarios.
         """
         # eval_scenario = Create_scenario(DIST_TYPE)
-        test_scenario_batch = [Create_scenario()
-                               for _ in range(test_scenario_batch_size)]
+        # test_scenario_batch = [Create_scenario()
+        #                        for _ in range(test_scenario_batch_size)]
 
         # Set the scenario for the environment
         all_rewards = []
@@ -201,16 +202,29 @@ meta_learner = MetaLearner(env)
 meta_rewards = []
 random_rewards = []
 
+# Generate scenarios
+all_scenarios = create_scenarios()
+print(f"Total {len(all_scenarios)} scenarios have been generated.")
+
+# Split scenarios into 8:2 ratio
+train_scenarios, test_scenarios = split_scenarios(all_scenarios)
+
+print(f"Number of training scenarios: {len(train_scenarios)}")
+print(f"Number of test scenarios: {len(test_scenarios)}")
+
 for iteration in range(num_outer_updates):
     env.scenario_batch_size = train_scenario_batch_size
     # LINE 3: Sample a batch of scenarios
-    scenario_batch = [Create_scenario()
-                      for _ in range(train_scenario_batch_size)]
+    train_scenario_batch = random.sample(
+        train_scenarios, train_scenario_batch_size)
+    # scenario_batch = [Create_scenario()
+    #                   for _ in range(train_scenario_batch_size)]
+
     if iteration == num_outer_updates-1:
         meta_learner.env.outer_end = True
     # Adapt the meta-policy to each scenario in the batch
     rollout_list = []
-    for scenario in scenario_batch:  # LINE 4
+    for scenario in train_scenario_batch:  # LINE 4
         print("\n\nTRAINING SCENARIO(DEMAND): ", scenario["DEMAND"])
         print("\n\nTRAINING SCENARIO(LEAD_TIME): ", scenario["LEADTIME"])
         print("\nOuter Loop: ", env.cur_outer_loop,
@@ -241,7 +255,10 @@ for iteration in range(num_outer_updates):
     # meta_learner.meta_update(rollout_list)
 
     # Evaluate the meta-policy on the test scenario
-    meta_mean_reward, meta_std_reward = meta_learner.meta_test()
+    test_scenario_batch = random.sample(
+        test_scenarios, test_scenario_batch_size)
+    meta_mean_reward, meta_std_reward = meta_learner.meta_test(
+        test_scenario_batch)
     meta_rewards.append(meta_mean_reward)
     print(
         f'Iteration {iteration+1}/{num_outer_updates} - Mean Reward: {meta_mean_reward:.2f} ± {meta_std_reward:.2f}\n')
@@ -264,7 +281,7 @@ end_time = time.time()
 
 
 # Evaluate the trained meta-policy
-meta_mean_reward, meta_std_reward = meta_learner.meta_test()
+meta_mean_reward, meta_std_reward = meta_learner.meta_test(test_scenario_batch)
 print(
     f"Mean reward over {N_EVAL_EPISODES} episodes: {meta_mean_reward:.2f} +/- {meta_std_reward:.2f}")
 

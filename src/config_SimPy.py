@@ -250,8 +250,8 @@ SIM_TIME = 200  # Default: 200 [days] per episode
 
 
 # Distribution types
-DEMAND_DIST_TYPE = "GAUSSIAN"  # GAUSSIAN, UNIFORM
-LEAD_DIST_TYPE = "GAUSSIAN"  # GAUSSIAN, UNIFORM
+DEMAND_DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
+LEAD_DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
 
 
 # Count for intransit inventory
