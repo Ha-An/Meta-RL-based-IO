@@ -5,6 +5,7 @@ from config_SimPy import *
 from config_RL import *
 from log_SimPy import *
 from log_RL import *
+from Def_Scenarios import *
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -13,17 +14,19 @@ from gym import spaces
 
 from torch.utils.tensorboard import SummaryWriter
 
+
+K = N_EPISODES
 # Hyperparameters
 ALPHA = 0.0001  # Inner loop step size (사용되지 않는 값) ->  SB3 PPO 기본 값(0.0003)
 BATCH_SIZE = 20  # Default 64
-N_STEPS = SIM_TIME*4  # Default 2048
+N_STEPS = SIM_TIME*K  # Default 2048
 
-BETA = 0.0003  # Outer loop step size ## Default: 0.001
+BETA = 0.0001  # Outer loop step size ## Default: 0.001
 train_scenario_batch_size = 10  # Batch size for random chosen scenarios
 test_scenario_batch_size = 5  # Batch size for random chosen scenarios
-num_inner_updates = N_EPISODES  # Number of gradient steps for adaptation
-num_outer_updates = 700  # Number of outer loop updates -> meta-training iterations
-
+num_outer_updates = 1000  # Number of outer loop updates -> meta-training iterations
+tensor_save_path = TENSORFLOW_LOGS
+model_name = SAVED_MODEL_NAME
 # Meta-learning algorithm
 
 
@@ -38,24 +41,27 @@ class MetaLearner:
         self.beta = beta
 
         self.meta_model = PPO(policy, self.env, verbose=0,
-                              n_steps=N_STEPS, learning_rate=self.beta, batch_size=BATCH_SIZE)
+                              n_steps=N_STEPS, learning_rate=self.beta, batch_size=BATCH_SIZE, n_epochs=1)
+        self.writer = SummaryWriter(log_dir=tensor_save_path)
 
-        self.writer = SummaryWriter(log_dir='./META_tensorboard_logs')
-
-    def inner_loop(self, num_updates=num_inner_updates):
+    def inner_loop(self, K=K):
         """
         Adapts the meta-policy to a specific task using gradient descent.
         """
         self.env.reset()
+        # n_steps: K개의 rollout을 가지고 policy를 업데이트
         adapted_model = PPO(self.policy, self.env, verbose=0,
-                            n_steps=N_STEPS, learning_rate=self.alpha, batch_size=BATCH_SIZE)
+                            n_steps=N_STEPS, learning_rate=self.alpha, batch_size=BATCH_SIZE, n_epochs=1)
 
         # 정책 네트워크의 파라미터 복사
         adapted_model.policy.load_state_dict(
             self.meta_model.policy.state_dict())
 
-        # LINE 6, 7: num_updates가 논문의 K와 같음
-        adapted_model.learn(total_timesteps=SIM_TIME*num_updates)
+        # LINE 5 - 7: 정책 네트워크의 파라미터의 파라미터 업데이트
+        # # (SIM_TIME*K) timestep 길이의 rollout을 두 번 학습하고, 두 번째 학습에 사용된 rollout (D')을 buffer에 저장함
+        # adapted_model.learn(total_timesteps=N_STEPS*2)
+        # (SIM_TIME*K) timestep 길이의 rollout을 한 번 학습하고, 그 다음 SIM_TIME만큼의 rollout (D')을 buffer에 저장함
+        adapted_model.learn(total_timesteps=N_STEPS+SIM_TIME)
 
         return adapted_model
 
@@ -68,10 +74,10 @@ class MetaLearner:
         # Compute current clip range
         clip_range = self.meta_model.clip_range(
             self.meta_model._current_progress_remaining)  # type: ignore[operator]
-        # Optional: clip range for the value function
-        if self.meta_model.clip_range_vf is not None:
-            clip_range_vf = self.meta_model.clip_range_vf(
-                self.meta_model._current_progress_remaining)  # type: ignore[operator]
+        # # Optional: clip range for the value function
+        # if self.meta_model.clip_range_vf is not None:
+        #     clip_range_vf = self.meta_model.clip_range_vf(
+        #         self.meta_model._current_progress_remaining)  # type: ignore[operator]
 
         entropy_losses = []
         pg_losses, value_losses = [], []
@@ -114,15 +120,17 @@ class MetaLearner:
                 (torch.abs(ratio - 1) > clip_range).float()).item()
             clip_fractions.append(clip_fraction)
 
-            if self.meta_model.clip_range_vf is None:
-                # No clipping
-                values_pred = values
-            else:
-                # Clip torche difference between old and new value
-                # NOTE: torchis depends on torche reward scaling
-                values_pred = rollout_data.old_values + torch.clamp(
-                    values - rollout_data.old_values, -clip_range_vf, clip_range_vf
-                )
+            values_pred = values
+            # if self.meta_model.clip_range_vf is None:
+            #     # No clipping
+            #     values_pred = values
+            # else:
+            #     # Clip torche difference between old and new value
+            #     # NOTE: torchis depends on torche reward scaling
+            #     values_pred = rollout_data.old_values + torch.clamp(
+            #         values - rollout_data.old_values, -clip_range_vf, clip_range_vf
+            #     )
+
             # Value loss using torche TD(gae_lambda) target
             value_loss = F.mse_loss(rollout_data.returns, values_pred)
             value_losses.append(value_loss.item())
@@ -152,17 +160,18 @@ class MetaLearner:
             self.meta_model.rollout_buffer = rollout_buffer
             self.custom_train()
 
-    def meta_test(self):
+    def meta_test(self, iteration, test_scenario_batch):
         """
         Performs the meta-test step by averaging gradients across scenarios.
         """
         # eval_scenario = Create_scenario(DIST_TYPE)
-        test_scenario_batch = [Create_scenario(DIST_TYPE)
-                               for _ in range(test_scenario_batch_size)]
+        # test_scenario_batch = [Create_scenario()
+        #                        for _ in range(test_scenario_batch_size)]
 
         # Set the scenario for the environment
         all_rewards = []
         for test_scenario in test_scenario_batch:
+            # for test_scenario in test_scenario_batch:
             self.env.reset()
             self.env.scenario = test_scenario
             print("\n\nTEST SCENARIO: ", self.env.scenario)
@@ -184,76 +193,103 @@ class MetaLearner:
         self.writer.add_scalar("Reward/Std", std_reward, iteration)
 
 
-# Start timing the computation
-start_time = time.time()
+def main():
+    # Start timing the computation
+    start_time = time.time()
+    # Create environment
+    env = GymInterface()
+    # Training the Meta-Learner
+    meta_learner = MetaLearner(env)
+    meta_rewards = []
+    random_rewards = []
+    # Generate scenarios
+    all_scenarios = create_scenarios()
+    print(f"Total {len(all_scenarios)} scenarios have been generated.")
+    # Split scenarios into 8:2 ratio
+    train_scenarios, test_scenarios = split_scenarios(all_scenarios)
+    print(f"Number of training scenarios: {len(train_scenarios)}")
+    print(f"Number of test scenarios: {len(test_scenarios)}")
+    for iteration in range(num_outer_updates):
+        env.scenario_batch_size = train_scenario_batch_size
+        # LINE 3: Sample a batch of scenarios
+        train_scenario_batch = random.sample(
+            train_scenarios, train_scenario_batch_size)
+        # scenario_batch = [Create_scenario()
+        #                   for _ in range(train_scenario_batch_size)]
+        if iteration == num_outer_updates-1:
+            meta_learner.env.outer_end = True
+        # Adapt the meta-policy to each scenario in the batch
+        rollout_list = []
+        for scenario in train_scenario_batch:  # LINE 4
+            print("\n\nTRAINING SCENARIO(DEMAND): ", scenario["DEMAND"])
+            print("\n\nTRAINING SCENARIO(LEAD_TIME): ", scenario["LEADTIME"])
+            print("\nOuter Loop: ", env.cur_outer_loop,
+                  " / Inner Loop: ", env.cur_inner_loop)
+            # Reset the scenario for the environment
+            meta_learner.env.scenario = scenario
+            print("Demand: ", meta_learner.env.scenario["DEMAND"])
+            print("Lead_time: ", meta_learner.env.scenario["LEADTIME"])
+            # LINE 5 - 7
+            adapted_model = meta_learner.inner_loop()  # LINE 6-7
+            '''
+            # LINE 8: 학습된 모델로부터 rollout 수집
+            # rollout buffer에는 K개의 에피소드가 저장되어 있음
+            meta_learner.meta_model.rollout_buffer = adapted_model.rollout_buffer
+            meta_learner.custom_train()
+            # rollout_list.append(rollout_buffer)
+            '''
+            # LINE 8: 학습된 모델로부터 rollout 수집(rollout buffer에는 1개의 에피소드가 저장되어 있음)
+            rollout_buffer = adapted_model.rollout_buffer
+            rollout_list.append(rollout_buffer)
 
-# Create environment
-env = GymInterface()
+            env.cur_episode = 1
+            env.cur_inner_loop += 1
+        # LINE 10: Perform the meta-update step
+        # rollout_list에는 각 scenario에 대한 rollout buffer가 저장되어 있음 -> 총 10개 에피소드 저장되어있음
+        meta_learner.meta_update(rollout_list)
 
-# Training the Meta-Learner
-meta_learner = MetaLearner(env)
-
-meta_rewards = []
-random_rewards = []
-
-for iteration in range(num_outer_updates):
-    # LINE 3: Sample a batch of scenarios
-    scenario_batch = [Create_scenario(DIST_TYPE)
-                      for _ in range(train_scenario_batch_size)]
-
-    # Adapt the meta-policy to each scenario in the batch
-    rollout_list = []
-    for scenario in scenario_batch:  # LINE 4
-        print("\n\nTRAINING SCENARIO: ", scenario)
-        print("\nOuter Loop: ", env.cur_outer_loop,
-              " / Inner Loop: ", env.cur_inner_loop)
-
-        # Reset the scenario for the environment
-        meta_learner.env.scenario = scenario
-        print("Scenario: ", meta_learner.env.scenario)
-        # 특정 시나리오에 대한 학습 진행
-        adapted_model = meta_learner.inner_loop()
-
-        # LINE 8: 학습된 모델로부터 rollout 수집
-        rollout_buffer = adapted_model.rollout_buffer
-        rollout_list.append(rollout_buffer)
-
+        # Evaluate the meta-policy on the test scenario
+        test_scenario_batch = random.sample(
+            test_scenarios, test_scenario_batch_size)
+        meta_mean_reward, meta_std_reward = meta_learner.meta_test(
+            iteration, test_scenario_batch)
+        meta_rewards.append(meta_mean_reward)
+        print(
+            f'Iteration {iteration+1}/{num_outer_updates} - Mean Reward: {meta_mean_reward:.2f} ± {meta_std_reward:.2f}\n')
+        print('===========================================================')
         env.cur_episode = 1
-        env.cur_inner_loop += 1
+        env.cur_inner_loop = 1
+        env.cur_outer_loop += 1
+        env.outer_end = False
+        # Save the trained meta-policy
+        if EXPERIMENT_MAML == False:
 
-    # LINE 10: Perform the meta-update step
-    meta_learner.meta_update(rollout_list)
+            meta_learner.meta_model.save(model_name)  # default
 
-    # Evaluate the meta-policy on the test scenario
-    meta_mean_reward, meta_std_reward = meta_learner.meta_test()
-    meta_rewards.append(meta_mean_reward)
+        else:
+            meta_learner.meta_model.save(
+                os.path.join(tensor_save_path, model_name))
+    training_end_time = time.time()
+    print("\nMETA TRAINING COMPLETE \n\n\n")
+    # Calculate computation time and print it
+    end_time = time.time()
+
+    # Evaluate the trained meta-policy
+    meta_mean_reward, meta_std_reward = meta_learner.meta_test(
+        num_outer_updates, test_scenario_batch)
     print(
-        f'Iteration {iteration+1}/{num_outer_updates} - Mean Reward: {meta_mean_reward:.2f} ± {meta_std_reward:.2f}\n')
-    print('===========================================================')
+        f"Mean reward over {N_EVAL_EPISODES} episodes: {meta_mean_reward:.2f} +/- {meta_std_reward:.2f}")
 
-    env.cur_episode = 1
-    env.cur_inner_loop = 1
-    env.cur_outer_loop += 1
+    print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n",
+          f"Training time: {(training_end_time - start_time)/60:.2f} minutes \n ",
+          f"Test time:{(end_time - training_end_time)/60:.2f} minutes")
+    # Optionally render the environment
+    env.render()
 
-    # Save the trained meta-policy
-    meta_learner.meta_model.save(SAVED_MODEL_NAME)
-
-training_end_time = time.time()
-
-print("\nMETA TRAINING COMPLETE \n\n\n")
-
-# Calculate computation time and print it
-end_time = time.time()
+    return meta_mean_reward, meta_std_reward
 
 
-# Evaluate the trained meta-policy
-meta_mean_reward, meta_std_reward = meta_learner.meta_test()
-print(
-    f"Mean reward over {N_EVAL_EPISODES} episodes: {meta_mean_reward:.2f} +/- {meta_std_reward:.2f}")
-
-print(f"Computation time: {(end_time - start_time)/60:.2f} minutes \n",
-      f"Training time: {(training_end_time - start_time)/60:.2f} minutes \n ",
-      f"Test time:{(end_time - training_end_time)/60:.2f} minutes")
-
-# Optionally render the environment
-env.render()
+if EXPERIMENT_MAML == False:
+    main()  # default
+else:
+    pass

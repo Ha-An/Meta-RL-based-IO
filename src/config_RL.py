@@ -60,7 +60,7 @@ def save_path(path):
 
 
 # Episode
-N_EPISODES = 3000  # 3000
+N_EPISODES = 5  # 3000
 
 # RL algorithms
 RL_ALGORITHM = "PPO"  # "DP", "DQN", "DDPG", "PPO", "SAC"
@@ -74,14 +74,12 @@ ACTION_SPACE = [0, 1, 2, 3, 4, 5]
 # Action 값 고정 여부 -> config_SimPy.py에서 고정값 설정
 CONSISTENT_ACTION = False  # True: Action 값 고정 / False: RL 에이전트에 따라 Action 값 변동
 
-DRL_TENSORBOARD = True
-
 # Hyperparameter optimization
 OPTIMIZE_HYPERPARAMETERS = False
 N_TRIALS = 20  # 50
 
 # Evaluation
-N_EVAL_EPISODES = 10  # 100
+N_EVAL_EPISODES = 5  # 100
 
 # Export files
 DAILY_REPORT_EXPORT = False
@@ -93,12 +91,22 @@ current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
 
 # Define dir's path
-if DRL_TENSORBOARD == True:
+DRL_TENSORBOARD = False  # When True for DRL
+EXPERIMENT_MAML = True  # When True for EXPERIMENT_MAML
+EXPERIMENT_ADAPTATION = False  # When True for EXPERIMENT_ADAPTATION
+
+if EXPERIMENT_MAML:
     tensorboard_folder = os.path.join(
-        parent_dir, "NEW_DRL_tensorboard_logs")
-elif DRL_TENSORBOARD == False:
+        parent_dir, "Tensorboard_logs_Experiment_MAML")
+elif EXPERIMENT_ADAPTATION:
     tensorboard_folder = os.path.join(
-        parent_dir, "NEW_META_tensorboard_logs")
+        parent_dir, "Tensorboard_logs_Experiment_ADAPT")
+elif DRL_TENSORBOARD:
+    tensorboard_folder = os.path.join(
+        parent_dir, "Tensorboard_logs_DRL")
+else:
+    tensorboard_folder = os.path.join(
+        parent_dir, "Tensorboard_logs_MAML")
 
 result_csv_folder = os.path.join(parent_dir, "result_CSV")
 STATE_folder = os.path.join(result_csv_folder, "state")
@@ -123,12 +131,12 @@ VIZ_COST_BOX = False
 # Saved Model
 SAVED_MODEL_PATH = os.path.join(parent_dir, "Saved_Model")
 SAVE_MODEL = False
-# SAVED_MODEL_NAME = "PPO_Default_1000"
-SAVED_MODEL_NAME = "MAML_PPO_AP1_E10_O1000"
+SAVED_MODEL_NAME = "DRL_PPO_AP1_E5000"
+# SAVED_MODEL_NAME = "MAML_PPO_AP3_E5_O1000"
 
 # Load Model
-LOAD_MODEL = True
-LOAD_MODEL_NAME = "MAML_PPO_AP1_E10_O1000"
+LOAD_MODEL = False
+LOAD_MODEL_NAME = "MAML_PPO_AP3_E5_O1000"
 
 # Non-stationary demand
 mean_demand = 100

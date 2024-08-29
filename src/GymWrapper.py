@@ -23,22 +23,22 @@ class GymInterface(gym.Env):
         if DEMAND_DIST_TYPE == "UNIFORM":
             # demand_dist = {"Dist_Type": "UNIFORM",
             #                "min": 8, "max": 15}
-            # demand_dist = {"Dist_Type": "UNIFORM",
-            #                "min": 10, "max": 13}  # Default scenario
             demand_dist = {"Dist_Type": "UNIFORM",
-                           "min": 5, "max": 10}
+                           "min": 10, "max": 13}  # Default scenario
+            # demand_dist = {"Dist_Type": "UNIFORM",
+            #                "min": 5, "max": 7}
         elif DEMAND_DIST_TYPE == "GAUSSIAN":
             demand_dist = {"Dist_Type": "GAUSSIAN",
-                           "mean": 11, "std": 4}
+                           "mean": 11, "std": 4}  # Default scenario
         # Scenario initialization for the demand
         if LEAD_DIST_TYPE == "UNIFORM":
-            # leadtime_dist = {"Dist_Type": "UNIFORM",
-            #                  "min": 1, "max": 3}  # Default scenario
             leadtime_dist = {"Dist_Type": "UNIFORM",
-                             "min": 3, "max": 4}
+                             "min": 1, "max": 3}  # Default scenario
+            # leadtime_dist = {"Dist_Type": "UNIFORM",
+            #                  "min": 4, "max": 5}
         elif LEAD_DIST_TYPE == "GAUSSIAN":
             leadtime_dist = {"Dist_Type": "GAUSSIAN",
-                             "mean": 3, "std": 3}
+                             "mean": 3, "std": 3}  # Default scenario
         self.scenario = {"DEMAND": demand_dist, "LEADTIME": leadtime_dist}
 
         self.shortages = 0
@@ -196,7 +196,7 @@ class GymInterface(gym.Env):
         # Check if the simulation is done
         done = self.simpy_env.now >= SIM_TIME * 24  # 예: SIM_TIME일 이후에 종료
         if done == True:
-            if DRL_TENSORBOARD:
+            if DRL_TENSORBOARD or EXPERIMENT_ADAPTATION:
                 self.writer.add_scalar(
                     "reward", self.total_reward, global_step=self.cur_episode)
                 # Log each cost ratio at the end of the episode

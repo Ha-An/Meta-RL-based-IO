@@ -31,11 +31,11 @@ env = GymInterface()
 
 # Build the model
 model = build_model()
-if LOAD_MODEL:
-    saved_model = PPO.load(os.path.join(
-        SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)  # Load the saved model
-    # 정책 네트워크의 파라미터 복사
-    model.policy.load_state_dict(saved_model.policy.state_dict())
+
+saved_model = PPO.load(os.path.join(
+    SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)  # Load the saved model
+# 정책 네트워크의 파라미터 복사
+model.policy.load_state_dict(saved_model.policy.state_dict())
 
 # Train the model
 model.learn(total_timesteps=SIM_TIME * N_EPISODES)
