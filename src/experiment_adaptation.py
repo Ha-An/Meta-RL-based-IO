@@ -49,7 +49,7 @@ def experiment(model):
 
 # ===================================================================
 # Learning Steps for Experiment
-test_steps = 1000
+test_steps = 1000   # N_EPISODES
 scenario = 'AP1'
 experiment_result = {'MAML_MEAN_REWARD': [],
                      'MAML_STD_REWARD': [],
@@ -72,8 +72,9 @@ adaptated_model = build_model(env)
 
 # Load Model
 parent_dir = os.path.dirname(current_dir)
-model_path = os.path.join(parent_dir, 'Saved_Model/MAML_PPO_AP1_E10_O1000')
-# model_path = os.path.join(parent_dir,'Tensorboard_logs_Experiment_MAML/Train_1')
+# model_path = os.path.join(parent_dir, 'Saved_Model/MAML_PPO_AP1_E10_O1000')
+model_path = os.path.join(
+    parent_dir, 'Tensorboard_logs_Experiment_MAML/Train_2/AP2_S5')
 
 # Load Adapted model
 adaptated_saved_model = PPO.load(model_path)

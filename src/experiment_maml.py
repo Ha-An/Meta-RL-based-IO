@@ -1,4 +1,4 @@
-import MAML as meta
+import MAML2 as meta
 from config_RL import *
 from stable_baselines3 import PPO
 import os
@@ -6,13 +6,13 @@ import pandas as pd
 
 # Experiment case: N_Episodes(inner_loop)
 # experiment_case = [5, 10]
-experiment_case = [1]
+experiment_case = [10]
 
 experiment_result = {"MEAN": [],
                      'STD': []}
 
 # Scenario number
-scenario = 'AP1'
+scenario = 'AP2'
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
 origin_log = TENSORFLOW_LOGS
@@ -21,7 +21,7 @@ for n_episodes in experiment_case:
     path = os.path.join(origin_log, f'{scenario}_S{n_episodes}')
     path = save_path(path)
     meta.tensor_save_path = path
-    meta.N_STPES = n_episodes * SIM_TIME
+    meta.N_STEPS = n_episodes * SIM_TIME
     meta.model_name = f'{scenario}_S{n_episodes}_O{meta.num_outer_updates}'
     mean, std = meta.main()
 

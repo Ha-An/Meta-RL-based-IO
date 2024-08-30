@@ -30,7 +30,7 @@ import numpy as np
 # PROCESS_COST: Processing cost of the process [$/unit]
 # PROCESS_STOP_COST: Penalty cost for stopping the process [$/unit]
 
-
+'''
 # Assembly Process 1
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
          "CUST_ORDER_CYCLE": 7,
@@ -96,7 +96,7 @@ P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_F
      1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[2], I[3], I[4]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1],
          "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
 
-
+'''
 # Assembly Process 3
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
          "CUST_ORDER_CYCLE": 7,
