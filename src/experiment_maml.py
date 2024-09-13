@@ -6,13 +6,14 @@ import pandas as pd
 
 # Experiment case: N_Episodes(inner_loop)
 # experiment_case = [5, 10]
-experiment_case = [10]
+# experiment_case = [10]
+experiment_case = [3, 7]
 
 experiment_result = {"MEAN": [],
                      'STD': []}
 
 # Scenario number
-scenario = 'AP2'
+scenario = 'AP1'
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
 origin_log = TENSORFLOW_LOGS

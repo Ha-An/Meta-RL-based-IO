@@ -60,7 +60,7 @@ def save_path(path):
 
 
 # Episode
-N_EPISODES = 5  # 3000
+N_EPISODES = 5000  # Default: 5000
 
 # RL algorithms
 RL_ALGORITHM = "PPO"  # "DP", "DQN", "DDPG", "PPO", "SAC"
@@ -92,8 +92,8 @@ parent_dir = os.path.dirname(current_dir)
 
 # Define dir's path
 DRL_TENSORBOARD = False  # When True for DRL
-EXPERIMENT_MAML = True  # When True for EXPERIMENT_MAML
-EXPERIMENT_ADAPTATION = False  # When True for EXPERIMENT_ADAPTATION
+EXPERIMENT_MAML = False  # When True for EXPERIMENT_MAML
+EXPERIMENT_ADAPTATION = True  # When True for EXPERIMENT_ADAPTATION
 
 if EXPERIMENT_MAML:
     tensorboard_folder = os.path.join(
@@ -103,7 +103,7 @@ elif EXPERIMENT_ADAPTATION:
         parent_dir, "Tensorboard_logs_Experiment_ADAPT")
 elif DRL_TENSORBOARD:
     tensorboard_folder = os.path.join(
-        parent_dir, "Tensorboard_logs_DRL")
+        parent_dir, "Tensorboard_logs_Experiment_DRL")
 else:
     tensorboard_folder = os.path.join(
         parent_dir, "Tensorboard_logs_MAML")

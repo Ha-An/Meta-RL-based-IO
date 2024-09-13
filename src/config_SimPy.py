@@ -52,7 +52,7 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
 P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1]], "QNTY_FOR_INPUT_ITEM": [
     1], "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
 '''
-
+'''
 # Assembly Process 2
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
          "CUST_ORDER_CYCLE": 7,
@@ -95,8 +95,8 @@ P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_F
          "OUTPUT": I[4], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2},
      1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[2], I[3], I[4]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1],
          "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
-
 '''
+
 # Assembly Process 3
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
          "CUST_ORDER_CYCLE": 7,
@@ -160,7 +160,7 @@ P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_F
          "OUTPUT": I[7], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2},
      2: {"ID": 2, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[4], I[5], I[7]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1],
          "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
-'''
+
 
 # Options for RL states
 DAILY_CHANGE = 0  # 0: False / 1: True
@@ -251,8 +251,8 @@ SIM_TIME = 200  # Default: 200 [days] per episode
 
 
 # Distribution types
-DEMAND_DIST_TYPE = "GAUSSIAN"  # GAUSSIAN, UNIFORM
-LEAD_DIST_TYPE = "GAUSSIAN"  # GAUSSIAN, UNIFORM
+DEMAND_DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
+LEAD_DIST_TYPE = "UNIFORM"  # GAUSSIAN, UNIFORM
 
 
 # Count for intransit inventory

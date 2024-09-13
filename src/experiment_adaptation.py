@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 def build_model(env):
     if RL_ALGORITHM == "PPO":
         model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME *
-                    4, learning_rate=0.0001, batch_size=20)
+                    4, learning_rate=0.0001, batch_size=20)  # DEFAULT
         print(env.observation_space)
     elif RL_ALGORITHM == "DQN":
         pass
@@ -49,8 +49,8 @@ def experiment(model):
 
 # ===================================================================
 # Learning Steps for Experiment
-test_steps = 1000   # N_EPISODES
-scenario = 'AP1'
+test_steps = 5000   # N_EPISODES
+scenario = 'AP3'
 experiment_result = {'MAML_MEAN_REWARD': [],
                      'MAML_STD_REWARD': [],
                      'DRL_MEAN_REWARD': [],
@@ -74,7 +74,7 @@ adaptated_model = build_model(env)
 parent_dir = os.path.dirname(current_dir)
 # model_path = os.path.join(parent_dir, 'Saved_Model/MAML_PPO_AP1_E10_O1000')
 model_path = os.path.join(
-    parent_dir, 'Tensorboard_logs_Experiment_MAML/Train_2/AP2_S5')
+    parent_dir, 'Tensorboard_logs_Experiment_MAML/Train_9/AP3_S7/AP3_S7_O1000')
 
 # Load Adapted model
 adaptated_saved_model = PPO.load(model_path)
@@ -87,6 +87,7 @@ mean_reward, std_reward = experiment(adaptated_model)
 # Save Result
 experiment_result['MAML_MEAN_REWARD'].append(mean_reward)
 experiment_result['MAML_STD_REWARD'].append(std_reward)
+
 
 print("==============DRL_EXPERIMENT==============")
 # create environment
@@ -106,6 +107,7 @@ mean_reward, std_reward = experiment(DRL_model)
 # Save Result
 experiment_result['DRL_MEAN_REWARD'].append(mean_reward)
 experiment_result['DRL_STD_REWARD'].append(std_reward)
+
 
 # Save Data Frame
 df = pd.DataFrame(experiment_result)
