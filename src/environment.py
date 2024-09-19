@@ -102,7 +102,7 @@ class Supplier:
         lead_time = I[self.item_id]["SUP_LEAD_TIME"]
         # Log the delivery event with lead time
         daily_events.append(
-            f"{self.env.now}: {I[self.item_id]['NAME']} will be delivered at {lead_time} days after         : {I[self.item_id]['LOT_SIZE_ORDER']} units")
+            f"{self.env.now}: {I[self.item_id]['NAME']} will be delivered at {lead_time} days after         : {material_qty} units")
 
         # Wait for the lead time
         yield self.env.timeout(lead_time * 24)
@@ -146,12 +146,18 @@ class Procurement:
                 f"==============={I[self.item_id]['NAME']}\'s Inventory ===============")
 
             # Set the order size based on LOT_SIZE_ORDER and reorder level
-            # I[self.item_id]["LOT_SIZE_ORDER"] = ORDER_QTY
-            order_size = I[self.item_id]["LOT_SIZE_ORDER"]
-            # if order_size > 0 and inventory.on_hand_inventory < REORDER_LEVEL:
+            if SSPOLICY:
+                if inventory.on_hand_inventory <= SQPAIR['Reorder']:
+                    order_size = SQPAIR['Order']
+                else:
+                    order_size = 0
+            else:
+                # I[self.item_id]["LOT_SIZE_ORDER"] = ORDER_QTY
+                order_size = I[self.item_id]["LOT_SIZE_ORDER"]
+
             if order_size > 0:
                 daily_events.append(
-                    f"{present_daytime(self.env.now)}: The Procurement ordered {I[self.item_id]['NAME']}: {I[self.item_id]['LOT_SIZE_ORDER']}  units  ")
+                    f"{present_daytime(self.env.now)}: The Procurement ordered {I[self.item_id]['NAME']}: {order_size}  units  ")
                 self.order_qty = order_size
                 # Update in-transition inventory
                 inventory.update_inven_level(

@@ -30,7 +30,7 @@ import numpy as np
 # PROCESS_COST: Processing cost of the process [$/unit]
 # PROCESS_STOP_COST: Penalty cost for stopping the process [$/unit]
 
-'''
+
 # Assembly Process 1
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
          "CUST_ORDER_CYCLE": 7,
@@ -51,7 +51,6 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",
          "LOT_SIZE_ORDER": 0}}
 P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1]], "QNTY_FOR_INPUT_ITEM": [
     1], "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
-'''
 '''
 # Assembly Process 2
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
@@ -96,7 +95,7 @@ P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_F
      1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[2], I[3], I[4]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1],
          "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
 '''
-
+'''
 # Assembly Process 3
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PROD",
          "CUST_ORDER_CYCLE": 7,
@@ -161,12 +160,29 @@ P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_F
      2: {"ID": 2, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[4], I[5], I[7]], "QNTY_FOR_INPUT_ITEM": [1, 1, 1],
          "OUTPUT": I[0], "PROCESS_COST": 1, "PROCESS_STOP_COST": 2}}
 
-
+'''
 # Options for RL states
 DAILY_CHANGE = 0  # 0: False / 1: True
 INTRANSIT = 1  # 0: False / 1: True
 
-
+# Scenario about Demand and leadtime
+DEMAND_SCENARIO = {"Dist_Type": "UNIFORM",
+                    "min": 14, 
+                    "max": 14}
+ 
+LEADTIME_SCENARIO = {"Dist_Type": "UNIFORM",
+                     "min": 2,
+                     "max": 2}
+# Example of Gaussian case
+"""
+DEMAND_SCENARIO = {"Dist_Type": "GAUSSIAN",
+                    "mean": 11.5, 
+                    "std": 2}
+ 
+LEADTIME_SCENARIO = {"Dist_Type": "GAUSSIAN",
+                     "mean": 3,
+                     "std": 1}
+"""
 def DEFINE_FOLDER(folder_name):
     if os.path.exists(folder_name):
         file_list = os.listdir(folder_name)
@@ -247,7 +263,7 @@ INVEN_LEVEL_MAX = 20  # Capacity limit of the inventory [units]
 # DEMAND_QTY_MAX = 16
 
 # Simulation
-SIM_TIME = 200  # Default: 200 [days] per episode
+SIM_TIME = 7  # Default: 200 [days] per episode
 
 
 # Distribution types
@@ -261,15 +277,20 @@ for id in I.keys():
     if I[id]["TYPE"] == "Material":
         MAT_COUNT += 1
 
+
 # Ordering rules -> If not used, the list should be left empty: []
-ORDER_QTY = []
-# ORDER_QTY = [1] # AP1
-# ORDER_QTY = [1, 1, 1, 1, 1]  # AP3
+SSPOLICY = True # When using Sspolicy 
+SQPAIR = {'Reorder': 0,
+          'Order': 0}
+
+# ORDER_QTY = [1] # AP1 when normal
+# ORDER_QTY = [1, 1, 1, 1, 1]  # AP3 when normal
+# ORDER_QTY = 2 # S_Level when SsPolicy
 
 # REORDER_LEVEL = 0
 
 # Print logs
-PRINT_SIM = False
+PRINT_SIM = True
 # PRINT_LOG_TIMESTEP = True
 # PRINT_LOG_DAILY_REPORT = True
 
