@@ -114,11 +114,7 @@ class GymInterface(gym.Env):
         env.update_daily_report(self.inventoryList)
 
         state_real = self.get_current_state()
-        state_correction = self.correct_state_for_SB3()
-        if USE_CORRECTION:
-            return state_correction
-        else:
-            return state_real
+        return state_real
 
     def step(self, action):
         # Update the action of the agent
@@ -140,19 +136,13 @@ class GymInterface(gym.Env):
         # current_state = env.cap_current_state(self.inventoryList)
         # Run the simulation for 24 hours (until the next day)
         # Action append
-        STATE_ACTION_REPORT_REAL[-1].append(action)
-        STATE_ACTION_REPORT_CORRECTION[-1].append(action)
 
         self.simpy_env.run(until=self.simpy_env.now + 24)
         env.update_daily_report(self.inventoryList)
         # Capture the next state of the environment
         state_real = self.get_current_state()
-        state_corr = self.correct_state_for_SB3()
         # Set the next state
-        if USE_CORRECTION:
-            next_state = state_corr
-        else:
-            next_state = state_real
+        next_state = state_real
         # Calculate the total cost of the day
         env.Cost.update_cost_log(self.inventoryList)
         if PRINT_SIM:
@@ -186,12 +176,8 @@ class GymInterface(gym.Env):
             for _ in cost.keys():
                 print(_, cost[_])
             print("Total cost: ", -self.total_reward)
-            if USE_CORRECTION:
-                print("[CORRECTED_STATE for the next round] ",
-                      [item for item in next_state])
-            else:
-                print("[REAL_STATE for the next round] ",  [
-                      item-INVEN_LEVEL_MAX for item in next_state])
+            print("[REAL_STATE for the next round] ",  [
+                    item-INVEN_LEVEL_MAX for item in next_state])
 
         self.daily_events.clear()
 
@@ -244,37 +230,8 @@ class GymInterface(gym.Env):
         # Append remaining demand
         state.append(I[0]["DEMAND_QUANTITY"] -
                      self.inventoryList[0].on_hand_inventory+INVEN_LEVEL_MAX)
-        STATE_ACTION_REPORT_REAL.append(
-            [Item - INVEN_LEVEL_MAX for Item in state])
         return state
 
-    # Min-Max Normalization
-    def correct_state_for_SB3(self):
-        # Find minimum Delta
-        product_outgoing_correction = 0
-        for key in P:
-            # product_outgoing_correction = max(P[key]["PRODUCTION_RATE"] * max(P[key]['QNTY_FOR_INPUT_ITEM']), self.scenario["max"])
-            product_outgoing_correction = max(
-                P[key]["PRODUCTION_RATE"] * max(P[key]['QNTY_FOR_INPUT_ITEM']), INVEN_LEVEL_MAX)
-        # Update STATE_ACTION_REPORT_CORRECTION.append(state_corrected)
-        state_corrected = []
-        for id in range(len(I)):
-            # normalization Onhand inventory
-            state_corrected.append(
-                round((STATE_DICT[-1][f"On_Hand_{I[id]['NAME']}"]/INVEN_LEVEL_MAX)*100))
-            if DAILY_CHANGE == 1:
-                state_corrected.append(round(((STATE_DICT[-1][f"Daily_Change_{I[id]['NAME']}"]-(-product_outgoing_correction))/(
-                    ACTION_SPACE[-1]-(-product_outgoing_correction)))*100))  # normalization changes in inventory
-            if I[id]['TYPE'] == "Material":
-                if INTRANSIT == 1:
-                    state_corrected.append(round(
-                        (STATE_DICT[-1][f"In_Transit_{I[id]['NAME']}"]-ACTION_SPACE[0])/(ACTION_SPACE[-1]*7-ACTION_SPACE[0])))
-
-        # normalization remaining demand
-        state_corrected.append(round(
-            ((I[0]["DEMAND_QUANTITY"]-self.inventoryList[0].on_hand_inventory+INVEN_LEVEL_MAX)/(I[0]['DEMAND_QUANTITY']+INVEN_LEVEL_MAX))*100))
-        STATE_ACTION_REPORT_CORRECTION.append(state_corrected)
-        return STATE_ACTION_REPORT_CORRECTION[-1]
 
     def render(self, mode='human'):
         pass
@@ -288,8 +245,6 @@ class GymInterface(gym.Env):
 def evaluate_model(model, env, num_episodes):
     all_rewards = []  # List to store total rewards for each episode
     # XAI = []  # List for storing data for explainable AI purposes
-    STATE_ACTION_REPORT_CORRECTION.clear()
-    STATE_ACTION_REPORT_REAL.clear()
     ORDER_HISTORY = []
     # For validation and visualization
     Mat_Order = {}
@@ -342,8 +297,6 @@ def evaluate_model(model, env, num_episodes):
     Visualize_invens(onhand_inventory, demand_qty, Mat_Order, all_rewards)
     cal_cost_avg()
     # print("Order_Average:", test_order_mean)
-    if STATE_TEST_EXPORT:
-        export_state("TEST")
     # Calculate mean reward across all episodes
     mean_reward = np.mean(all_rewards)
     std_reward = np.std(all_rewards)  # Calculate standard deviation of rewards
@@ -442,41 +395,3 @@ def Visualize_invens(inventory, demand_qty, Mat_Order, all_rewards):
             for key, item in line_dict.items():
                 temp_dict[key] = item[day]
             writer.add_scalars("Test_Line", temp_dict, global_step=day+1)
-
-
-def export_state(Record_Type):
-    state_corr = pd.DataFrame(STATE_ACTION_REPORT_CORRECTION)
-    state_real = pd.DataFrame(STATE_ACTION_REPORT_REAL)
-
-    if Record_Type == 'TEST':
-        state_corr.dropna(axis=0, inplace=True)
-        state_real.dropna(axis=0, inplace=True)
-
-    columns_list = []
-    for id in I.keys():
-        if I[id]["TYPE"] == 'Material':
-            columns_list.append(f"{I[id]['NAME']}.InvenLevel")
-            if DAILY_CHANGE:
-                columns_list.append(f"{I[id]['NAME']}.DailyChange")
-            if INTRANSIT:
-                columns_list.append(f"{I[id]['NAME']}.Intransit")
-        else:
-            columns_list.append(f"{I[id]['NAME']}.InvenLevel")
-            if DAILY_CHANGE:
-                columns_list.append(f"{I[id]['NAME']}.DailyChange")
-    columns_list.append("Remaining_Demand")
-    columns_list.append("Action")
-    '''
-    for keys in I:
-        columns_list.append(f"{I[keys]['NAME']}'s inventory")
-        columns_list.append(f"{I[keys]['NAME']}'s Change")
-    
-    columns_list.append("Remaining Demand")
-    columns_list.append("Action")
-    '''
-    state_corr.columns = columns_list
-    state_real.columns = columns_list
-
-    state_corr.to_csv(
-        f'{STATE}/STATE_ACTION_REPORT_CORRECTION_{Record_Type}.csv')
-    state_real.to_csv(f'{STATE}/STATE_ACTION_REPORT_REAL_{Record_Type}.csv')

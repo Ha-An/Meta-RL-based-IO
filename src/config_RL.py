@@ -92,8 +92,8 @@ parent_dir = os.path.dirname(current_dir)
 
 # Define dir's path
 DRL_TENSORBOARD = False  # When True for DRL
-EXPERIMENT_MAML = False  # When True for EXPERIMENT_MAML
-EXPERIMENT_ADAPTATION = True  # When True for EXPERIMENT_ADAPTATION
+EXPERIMENT_MAML = True  # When True for EXPERIMENT_MAML
+EXPERIMENT_ADAPTATION = False  # When True for EXPERIMENT_ADAPTATION
 
 if EXPERIMENT_MAML:
     tensorboard_folder = os.path.join(
